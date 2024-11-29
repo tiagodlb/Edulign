@@ -1,0 +1,32 @@
+name: Require Approval
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  approval-check:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check Approval
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        PR_NUMBER=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
+        APPROVALS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+          "https://api.github.com/repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews" | \
+          jq '[.[] | select(.state == "APPROVED")] | length')
+        
+        if [ $APPROVALS -ge 1 ]; then
+          echo "Pull request has been approved"
+        else
+          echo "Pull request requires approval"
+          exit 1
+        fi
+
+  merge-check:
+    needs: approval-check
+    runs-on: ubuntu-latest
+    steps:
+    - name: Merge Check
+      run: echo "Approval check passed. Ready to merge."
