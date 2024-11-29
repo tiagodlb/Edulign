@@ -16,7 +16,7 @@ jobs:
         APPROVALS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
           "https://api.github.com/repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews" | \
           jq '[.[] | select(.state == "APPROVED")] | length')
-        
+
         if [ $APPROVALS -ge 1 ]; then
           echo "Pull request has been approved"
         else

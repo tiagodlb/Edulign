@@ -22,4 +22,5 @@ jobs:
         python -m pip install --upgrade pip
         pip install bandit
     - name: Run Bandit
-      run: bandit -r . -f custom --msg-template "{abspath}:{line}: {severity}: {test_id}: {msg}"
+      run: |
+        bandit -r . -f custom --msg-template "{abspath}:{line}: {severity}: {test_id}: {msg}"
