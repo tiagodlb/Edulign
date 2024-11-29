@@ -1,0 +1,29 @@
+name: Generate Changelog
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  generate_changelog:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Generate changelog
+      uses: github-changelog-generator/github-changelog-generator@v1.16.4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Commit changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add CHANGELOG.md
+        git commit -m "Update CHANGELOG.md" || echo "No changes to commit"
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ github.ref }}

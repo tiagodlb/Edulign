@@ -1,0 +1,18 @@
+name: Branch Naming Convention
+
+on:
+  create:
+    branches:
+      - '**'
+
+jobs:
+  check-branch-name:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check branch name
+      run: |
+        branch_name="${GITHUB_REF#refs/heads/}"
+        if [[ ! $branch_name =~ ^(feature|bugfix|hotfix|release)/[a-z0-9-]+$ ]]; then
+          echo "Branch name '$branch_name' does not follow the convention: (feature|bugfix|hotfix|release)/[a-z0-9-]+"
+          exit 1
+        fi
