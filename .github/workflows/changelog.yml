@@ -14,6 +14,7 @@ jobs:
           fetch-depth: 0
 
       - name: Generate Changelog
+        id: generate_changelog
         uses: ardalanamini/auto-changelog@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -30,7 +31,7 @@ jobs:
             chore: Chores
             revert: Reverts
           default-commit-type: Other Changes
-          release-name: v1.0.0
+          release-name: v0.1.0
           mention-authors: true
           mention-new-contributors: true
           include-compare-link: true
@@ -39,12 +40,20 @@ jobs:
           semver: true
           use-github-autolink: true
 
+      - name: Check Changelog
+        run: |
+          if [ ! -f CHANGELOG.md ]; then
+            echo "Changelog was not generated"
+            touch CHANGELOG.md
+            echo "# Changelog" > CHANGELOG.md
+          fi
+
       - name: Commit changes
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add CHANGELOG.md
-          git commit -m "Update CHANGELOG.md" || echo "No changes to commit"
+          git diff --quiet && git diff --staged --quiet || git commit -m "Update CHANGELOG.md"
 
       - name: Push changes
         run: git push
