@@ -9,8 +9,6 @@ Welcome to Edulign's documentation!
    installation
    usage
    api
-   contributing
-   changelog
 
 Introduction
 ------------
