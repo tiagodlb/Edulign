@@ -1,31 +1,42 @@
 name: Generate Changelog
-
 on:
   push:
     branches:
       - main
-
 jobs:
   generate_changelog:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Generate changelog
-        run: |
-          npm install -g github-changelog-generator
-          github-changelog-generator \
-            --user ${{ github.repository_owner }} \
-            --project ${{ github.event.repository.name }} \
-            --token ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate Changelog
+        uses: ardalanamini/auto-changelog@v4
+        id: changelog
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-types: |
+            feat: New Features
+            fix: Bug Fixes
+            docs: Documentation
+            style: Style Changes
+            refactor: Code Refactoring
+            perf: Performance Improvements
+            test: Tests
+            build: Build System
+            ci: CI/CD
+            chore: Chores
+            revert: Reverts
+
       - name: Commit changes
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add CHANGELOG.md
           git commit -m "Update CHANGELOG.md" || echo "No changes to commit"
+
       - name: Push changes
         run: git push
