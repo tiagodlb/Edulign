@@ -15,9 +15,8 @@ jobs:
 
       - name: Generate Changelog
         uses: ardalanamini/auto-changelog@v4
-        id: changelog
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           commit-types: |
             feat: New Features
             fix: Bug Fixes
@@ -30,6 +29,15 @@ jobs:
             ci: CI/CD
             chore: Chores
             revert: Reverts
+          default-commit-type: Other Changes
+          release-name: v1.0.0
+          mention-authors: true
+          mention-new-contributors: true
+          include-compare-link: true
+          include-pr-links: true
+          include-commit-links: true
+          semver: true
+          use-github-autolink: true
 
       - name: Commit changes
         run: |
