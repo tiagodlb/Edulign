@@ -1,11 +1,18 @@
+# Nome do workflow
 name: "Pull Request Labeler"
+# Evento que aciona o workflow
 on:
 - pull_request_target
 
+# Definição dos jobs do workflow
 jobs:
+  # Job para triagem (aplicação de rótulos)
   triage:
+    # Sistema operacional onde o job será executado
     runs-on: ubuntu-latest
+    # Passos do job
     steps:
+    # Usa a ação labeler para aplicar rótulos automaticamente
     - uses: actions/labeler@v4
       with:
         repo-token: "${{ secrets.GITHUB_TOKEN }}"

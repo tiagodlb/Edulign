@@ -1,23 +1,34 @@
+# Nome do workflow
 name: Generate Changelog
+# Evento que aciona o workflow
 on:
+  # Aciona quando há um push para a branch main
   push:
     branches:
       - main
+# Definição dos jobs do workflow
 jobs:
+  # Job para gerar o changelog
   generate_changelog:
+    # Sistema operacional onde o job será executado
     runs-on: ubuntu-latest
+    # Permissões necessárias
     permissions:
       contents: write
+    # Passos do job
     steps:
+      # Faz checkout do código
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # Gera o changelog
       - name: Generate Changelog
         id: generate_changelog
         uses: ardalanamini/auto-changelog@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          # Define os tipos de commit e suas descrições
           commit-types: |
             feat: New Features
             fix: Bug Fixes
@@ -40,6 +51,7 @@ jobs:
           semver: true
           use-github-autolink: true
 
+      # Verifica se o changelog foi gerado
       - name: Check Changelog
         run: |
           if [ ! -f CHANGELOG.md ]; then
@@ -48,6 +60,7 @@ jobs:
             echo "# Changelog" > CHANGELOG.md
           fi
 
+      # Faz commit das mudanças
       - name: Commit changes
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
@@ -55,5 +68,6 @@ jobs:
           git add CHANGELOG.md
           git diff --quiet && git diff --staged --quiet || git commit -m "Update CHANGELOG.md"
 
+      # Faz push das mudanças
       - name: Push changes
         run: git push

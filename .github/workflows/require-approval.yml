@@ -1,13 +1,21 @@
+# Nome do workflow
 name: Require Approval
 
+# Evento que aciona o workflow
 on:
+  # Aciona quando uma revisão de pull request é submetida
   pull_request_review:
     types: [submitted]
 
+# Definição dos jobs do workflow
 jobs:
+  # Job para verificar a aprovação
   approval-check:
+    # Sistema operacional onde o job será executado
     runs-on: ubuntu-latest
+    # Passos do job
     steps:
+    # Verifica se o pull request foi aprovado
     - name: Check Approval
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -24,9 +32,14 @@ jobs:
           exit 1
         fi
 
+  # Job para verificar se o merge pode ser feito
   merge-check:
+    # Depende do job de verificação de aprovação
     needs: approval-check
+    # Sistema operacional onde o job será executado
     runs-on: ubuntu-latest
+    # Passos do job
     steps:
+    # Verifica se o merge pode ser feito
     - name: Merge Check
       run: echo "Approval check passed. Ready to merge."

@@ -1,18 +1,26 @@
+# Nome do workflow
 name: Branch Naming Convention
 
+# Evento que aciona o workflow
 on:
+  # Aciona quando uma nova branch é criada
   create:
     branches:
-      - '**'
+      - "**"
 
+# Definição dos jobs do workflow
 jobs:
+  # Job para verificar o nome da branch
   check-branch-name:
+    # Sistema operacional onde o job será executado
     runs-on: ubuntu-latest
+    # Passos do job
     steps:
-    - name: Check branch name
-      run: |
-        branch_name="${GITHUB_REF#refs/heads/}"
-        if [[ ! $branch_name =~ ^(feature|bugfix|hotfix|release)/[a-z0-9-]+$ ]]; then
-          echo "Branch name '$branch_name' does not follow the convention: (feature|bugfix|hotfix|release)/[a-z0-9-]+"
-          exit 1
-        fi
+      # Verifica se o nome da branch segue a convenção
+      - name: Check branch name
+        run: |
+          branch_name="${GITHUB_REF#refs/heads/}"
+          if [[ ! $branch_name =~ ^(feature|bugfix|hotfix|release)/[a-z0-9-]+$ ]]; then
+            echo "Branch name '$branch_name' does not follow the convention: (feature|bugfix|hotfix|release)/[a-z0-9-]+"
+            exit 1
+          fi

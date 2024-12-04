@@ -1,29 +1,42 @@
+# Nome do workflow
 name: Documentation
 
+# Evento que aciona o workflow
 on:
+  # Aciona quando há um push para a branch main
   push:
     branches: [main]
 
+# Definição dos jobs do workflow
 jobs:
+  # Job para construir a documentação
   build-docs:
+    # Sistema operacional onde o job será executado
     runs-on: ubuntu-latest
+    # Permissões necessárias
     permissions:
       contents: write
+    # Passos do job
     steps:
-      - uses: actions/checkout@v3
+      # Faz checkout do código
+      - uses: actions/checkout@v4
+      # Configura o ambiente Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
+      # Instala as dependências
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+      # Constrói a documentação
       - name: Build documentation
         run: |
           cd docs
           make html
           ls -R
+      # Faz deploy da documentação para o GitHub Pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:

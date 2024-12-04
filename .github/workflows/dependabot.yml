@@ -1,17 +1,28 @@
+# Versão do arquivo de configuração do Dependabot
 version: 2
 updates:
+  # Configuração para atualizações do ecossistema pip (Python)
   - package-ecosystem: 'pip'
+    # Diretório onde o arquivo de requisitos está localizado
     directory: '/'
+    # Agenda de verificação de atualizações
     schedule:
+      # Verifica semanalmente por atualizações
       interval: 'weekly'
+    # Limite máximo de pull requests abertos simultaneamente
     open-pull-requests-limit: 10
+    # Revisores designados para os pull requests
     reviewers:
       - tiagodlb
+    # Rótulos a serem aplicados aos pull requests
     labels:
       - 'dependencies'
 
-  # You could add more ecosystems like:
+  # Configuração para atualizações de ações do GitHub
   - package-ecosystem: 'github-actions'
+    # Diretório onde os arquivos de workflow estão localizados
     directory: '/'
+    # Agenda de verificação de atualizações
     schedule:
+      # Verifica mensalmente por atualizações
       interval: 'monthly'

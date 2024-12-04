@@ -1,24 +1,36 @@
+# Nome do workflow
 name: Code Complexity Check
 
+# Eventos que acionam o workflow
 on:
+  # Aciona quando há um push para a branch main
   push:
     branches: [ main ]
+  # Aciona quando há um pull request para a branch main
   pull_request:
     branches: [ main ]
 
+# Definição dos jobs do workflow
 jobs:
+  # Job para verificar a complexidade do código
   check-complexity:
+    # Sistema operacional onde o job será executado
     runs-on: ubuntu-latest
+    # Passos do job
     steps:
-    - uses: actions/checkout@v3
+    # Faz checkout do código
+    - uses: actions/checkout@v4
+    # Configura o ambiente Python
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
+    # Instala as dependências
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install radon
+    # Verifica a complexidade do código usando a ferramenta radon
     - name: Check code complexity
       run: |
         radon cc . -a -nb
