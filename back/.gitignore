@@ -1,0 +1,36 @@
+# Ignorar ambiente virtual
+venv/
+
+# Ignorar dados sensíveis e arquivos de entrada/saída
+data/*
+!data/.gitkeep
+
+pdfs/*
+!pdfs/.gitkeep
+
+# Ignorar caches e arquivos temporários do Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignorar logs e arquivos temporários
+*.log
+*.tmp
+
+# Ignorar configurações específicas do sistema operacional
+.DS_Store
+Thumbs.db
+
+# Ignorar configurações do editor/IDE
+.vscode/
+.idea/
+*.swp
+
+# Ignorar pacotes e distribuições Python
+build/
+dist/
+*.egg-info/
+
+# Ignorar arquivos de Jupyter Notebook checkpoints
+.ipynb_checkpoints/
