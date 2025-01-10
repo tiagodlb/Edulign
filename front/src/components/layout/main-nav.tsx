@@ -14,6 +14,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
+import { UserNav } from "./user-nav"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard" },
@@ -49,6 +50,7 @@ export function MainNav() {
           ))}
         </nav>
         <ModeToggle />
+        <UserNav /> {/* Add the UserNav component here */}
         <Sheet>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="md:hidden">
