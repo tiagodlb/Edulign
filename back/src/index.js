@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import authRoutes from './routes/authRoutes.js';
+//import adminRoutes from './routes/adminRoutes.js'
 
 import setupSwagger from './config/swagger.js';
 
@@ -15,7 +16,8 @@ app.use(express.json());
 setupSwagger(app);
 
 // Rotas
-app.use('/api/auth', authRoutes);
+app.use('/eduling/auth', authRoutes);
+//app.use('/eduling/admin', adminRoutes); 
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
