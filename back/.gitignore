@@ -1,5 +1,6 @@
 # Ignorar ambiente virtual
 venv/
+.env
 
 # Ignorar dados sensíveis e arquivos de entrada/saída
 data/*
@@ -34,3 +35,6 @@ dist/
 
 # Ignorar arquivos de Jupyter Notebook checkpoints
 .ipynb_checkpoints/
+
+
+/node_modules
