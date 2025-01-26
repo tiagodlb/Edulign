@@ -1,7 +1,7 @@
 import express from 'express';
 import * as adminController from '../controllers/adminController.js';
 import authMiddleware from '../middleware/authMiddleware.js';
-import adminMiddleware from '../middleware/adminMiddleware.js'; // Middleware para verificar se o usuário é administrador
+import adminMiddleware from '../middleware/adminMiddleware.js';
 import validateRequest from '../middleware/joiValidationMiddleware.js';
 import { userSchema, questionSchema } from '../utils/validationSchemas.js';
 
@@ -28,7 +28,11 @@ const router = express.Router();
  *       401:
  *         description: Token inválido ou usuário não autorizado
  */
-router.get('/users', authMiddleware, adminMiddleware, adminController.listUsers);
+router.get('/users',
+  authMiddleware,
+  adminMiddleware,
+  adminController.listUsers
+);
 
 /**
  * @swagger
@@ -64,11 +68,11 @@ router.get('/users', authMiddleware, adminMiddleware, adminController.listUsers)
  *       400:
  *         description: Dados inválidos
  */
-router.post('/users', 
-  authMiddleware, 
-  adminMiddleware, 
-  validateRequest(userSchema), 
-  adminController.createUser
+router.post('/users',
+  authMiddleware,
+  adminMiddleware,
+  validateRequest(userSchema),
+  adminController.createAdmin  // Changed from createUser to createAdmin to match controller
 );
 
 /**
@@ -84,17 +88,17 @@ router.post('/users',
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
- *           example: 1
+ *           type: string
+ *           format: uuid
  *     responses:
  *       200:
  *         description: Usuário excluído com sucesso
  *       404:
  *         description: Usuário não encontrado
  */
-router.delete('/users/:id', 
-  authMiddleware, 
-  adminMiddleware, 
+router.delete('/users/:id',
+  authMiddleware,
+  adminMiddleware,
   adminController.deleteUser
 );
 
@@ -113,27 +117,27 @@ router.delete('/users/:id',
  *           schema:
  *             type: object
  *             properties:
- *               question:
+ *               enunciado:
  *                 type: string
  *                 example: Qual é a capital do Brasil?
- *               options:
+ *               alternativas:
  *                 type: array
  *                 items:
  *                   type: string
  *                 example: [Brasília, São Paulo, Rio de Janeiro]
- *               correctAnswer:
- *                 type: string
- *                 example: Brasília
+ *               respostaCorreta:
+ *                 type: integer
+ *                 example: 0
  *     responses:
  *       201:
  *         description: Questão criada com sucesso
  *       400:
  *         description: Dados inválidos
  */
-router.post('/questions', 
-  authMiddleware, 
-  adminMiddleware, 
-  validateRequest(questionSchema), 
+router.post('/questions',
+  authMiddleware,
+  adminMiddleware,
+  validateRequest(questionSchema),
   adminController.createQuestion
 );
 
@@ -153,20 +157,19 @@ router.post('/questions',
  *             type: object
  *             properties:
  *               responseId:
- *                 type: integer
- *                 example: 123
+ *                 type: string
+ *                 format: uuid
  *               revisedResponse:
  *                 type: string
- *                 example: A capital do Brasil é Brasília.
  *     responses:
  *       200:
  *         description: Resposta revisada com sucesso
  *       404:
  *         description: Resposta não encontrada
  */
-router.put('/review-response', 
-  authMiddleware, 
-  adminMiddleware, 
+router.put('/review-response',
+  authMiddleware,
+  adminMiddleware,
   adminController.reviewResponse
 );
 

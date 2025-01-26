@@ -1,153 +1,56 @@
-import supabase from '../config/supabase.js';
-import bcrypt from 'bcrypt';
+import { asyncHandler, AppError } from '../middleware/errorMiddleware.js';
+import * as adminService from '../services/adminService.js';
 
-// Listar todos os usuários
-export const listUsers = async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, email, name, role, created_at');
+export const listUsers = asyncHandler(async (req, res) => {
+  const users = await adminService.listUsers();
+  res.status(200).json({
+    success: true,
+    data: users
+  });
+});
 
-    if (error) throw error;
+export const createAdmin = asyncHandler(async (req, res) => {
+  const admin = await adminService.createAdmin(req.body);
+  res.status(201).json({
+    success: true,
+    message: 'Administrador criado com sucesso',
+    data: admin
+  });
+});
 
-    res.status(200).json(data);
-  } catch (error) {
-    res.status(500).json({
-      message: 'Erro ao listar usuários.',
-      details: error.message
-    });
-  }
-};
-
-// Criar administrador
-export const createAdmin = async (req, res) => {
-  try {
-    const { email, password, name } = req.body;
-
-    // Verificar se o email já está registrado
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .single();
-
-    if (existingUser) {
-      return res.status(400).json({
-        message: 'Usuário já cadastrado',
-        field: 'email'
-      });
-    }
-
-    // Hash da senha
-    const saltRounds = 12;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-    // Inserir novo administrador
-    const { error } = await supabase
-      .from('users')
-      .insert({
-        email,
-        password: hashedPassword,
-        name,
-        role: 'admin' // Define explicitamente que é um administrador
-      });
-
-    if (error) {
-      return res.status(500).json({
-        message: 'Erro ao criar administrador',
-        details: error.message
-      });
-    }
-
-    res.status(201).json({
-      message: 'Administrador criado com sucesso',
-      user: { email, name, role: 'admin' }
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: 'Erro interno do servidor',
-      details: error.message
-    });
-  }
-};
-
-// Deletar usuário
-export const deleteUser = async (req, res) => {
+export const deleteUser = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  try {
-    // Excluir o usuário com base no ID
-    const { data, error } = await supabase
-      .from('users')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
-
-    if (data.length === 0) {
-      return res.status(404).json({ message: 'Usuário não encontrado.' });
-    }
-
-    res.status(200).json({ message: 'Usuário excluído com sucesso.' });
-  } catch (error) {
-    res.status(500).json({
-      message: 'Erro ao excluir usuário.',
-      details: error.message
-    });
+  if (!id) {
+    throw new AppError('ID do usuário não fornecido', 400);
   }
-};
 
-// Atualizar informações do usuário
-export const updateUser = async (req, res) => {
-  const { id } = req.params;
-  const { email, name, password, role } = req.body;
+  await adminService.deleteUser(id);
+  res.status(200).json({
+    success: true,
+    message: 'Usuário excluído com sucesso'
+  });
+});
 
-  try {
-    // Hash da senha (se fornecida)
-    let hashedPassword = null;
-    if (password) {
-      const saltRounds = 12;
-      hashedPassword = await bcrypt.hash(password, saltRounds);
-    }
+export const createQuestion = asyncHandler(async (req, res) => {
+  const question = await adminService.createQuestion(req.body);
+  res.status(201).json({
+    success: true,
+    message: 'Questão criada com sucesso',
+    data: question
+  });
+});
 
-    // Atualizar os dados no banco
-    const { error } = await supabase
-      .from('users')
-      .update({
-        email,
-        name,
-        password: hashedPassword ?? undefined, // Atualiza a senha apenas se fornecida
-        role
-      })
-      .eq('id', id);
+export const reviewResponse = asyncHandler(async (req, res) => {
+  const { responseId, revisedResponse } = req.body;
 
-    if (error) throw error;
-
-    res.status(200).json({ message: 'Usuário atualizado com sucesso.' });
-  } catch (error) {
-    res.status(500).json({
-      message: 'Erro ao atualizar usuário.',
-      details: error.message
-    });
+  if (!responseId || !revisedResponse) {
+    throw new AppError('Dados incompletos para revisão', 400);
   }
-};
 
-// Gerenciar questões (Exemplo de criação de questão)
-export const createQuestion = async (req, res) => {
-  const { question, options, correctAnswer } = req.body;
-
-  try {
-    const { error } = await supabase
-      .from('questions')
-      .insert([{ question, options, correct_answer: correctAnswer }]);
-
-    if (error) throw error;
-
-    res.status(201).json({ message: 'Questão criada com sucesso.' });
-  } catch (error) {
-    res.status(500).json({
-      message: 'Erro ao criar questão.',
-      details: error.message
-    });
-  }
-};
+  await adminService.reviewResponse(responseId, revisedResponse);
+  res.status(200).json({
+    success: true,
+    message: 'Resposta revisada com sucesso'
+  });
+});
