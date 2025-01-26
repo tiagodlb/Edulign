@@ -12,9 +12,9 @@ export const listUsers = async (req, res) => {
 
     res.status(200).json(data);
   } catch (error) {
-    res.status(500).json({ 
-      message: 'Erro ao listar usuários.', 
-      details: error.message 
+    res.status(500).json({
+      message: 'Erro ao listar usuários.',
+      details: error.message
     });
   }
 };
@@ -32,7 +32,7 @@ export const createAdmin = async (req, res) => {
       .single();
 
     if (existingUser) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'Usuário já cadastrado',
         field: 'email'
       });
@@ -45,28 +45,28 @@ export const createAdmin = async (req, res) => {
     // Inserir novo administrador
     const { error } = await supabase
       .from('users')
-      .insert({ 
-        email, 
-        password: hashedPassword, 
+      .insert({
+        email,
+        password: hashedPassword,
         name,
         role: 'admin' // Define explicitamente que é um administrador
       });
 
     if (error) {
-      return res.status(500).json({ 
+      return res.status(500).json({
         message: 'Erro ao criar administrador',
-        details: error.message 
+        details: error.message
       });
     }
 
-    res.status(201).json({ 
+    res.status(201).json({
       message: 'Administrador criado com sucesso',
       user: { email, name, role: 'admin' }
     });
   } catch (error) {
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Erro interno do servidor',
-      details: error.message 
+      details: error.message
     });
   }
 };
@@ -90,9 +90,9 @@ export const deleteUser = async (req, res) => {
 
     res.status(200).json({ message: 'Usuário excluído com sucesso.' });
   } catch (error) {
-    res.status(500).json({ 
-      message: 'Erro ao excluir usuário.', 
-      details: error.message 
+    res.status(500).json({
+      message: 'Erro ao excluir usuário.',
+      details: error.message
     });
   }
 };
@@ -116,7 +116,7 @@ export const updateUser = async (req, res) => {
       .update({
         email,
         name,
-        password: hashedPassword || undefined, // Atualiza a senha apenas se fornecida
+        password: hashedPassword ?? undefined, // Atualiza a senha apenas se fornecida
         role
       })
       .eq('id', id);
@@ -125,9 +125,9 @@ export const updateUser = async (req, res) => {
 
     res.status(200).json({ message: 'Usuário atualizado com sucesso.' });
   } catch (error) {
-    res.status(500).json({ 
-      message: 'Erro ao atualizar usuário.', 
-      details: error.message 
+    res.status(500).json({
+      message: 'Erro ao atualizar usuário.',
+      details: error.message
     });
   }
 };
@@ -145,9 +145,9 @@ export const createQuestion = async (req, res) => {
 
     res.status(201).json({ message: 'Questão criada com sucesso.' });
   } catch (error) {
-    res.status(500).json({ 
-      message: 'Erro ao criar questão.', 
-      details: error.message 
+    res.status(500).json({
+      message: 'Erro ao criar questão.',
+      details: error.message
     });
   }
 };

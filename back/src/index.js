@@ -19,7 +19,7 @@ setupSwagger(app);
 app.use('/eduling/auth', authRoutes);
 //app.use('/eduling/admin', adminRoutes); 
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env['PORT'] || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
   console.log(`Documentação disponível em http://localhost:${PORT}/api-docs`);
