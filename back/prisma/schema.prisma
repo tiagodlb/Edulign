@@ -1,0 +1,96 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id            String         @id @default(uuid())
+  nome          String
+  email         String         @unique
+  senha         String
+  ativo         Boolean        @default(true)
+  administrador Boolean        @default(false)
+  dataCriacao   DateTime       @default(now()) // Add this field
+  aluno         Aluno?
+  admin         Administrador?
+}
+
+model Aluno {
+  id        String     @id @default(uuid())
+  usuario   Usuario    @relation(fields: [usuarioId], references: [id])
+  usuarioId String     @unique
+  simulados Simulado[]
+  respostas Resposta[]
+}
+
+model Administrador {
+  id                   String         @id @default(uuid())
+  usuario              Usuario        @relation(fields: [usuarioId], references: [id])
+  usuarioId            String         @unique
+  questoesCadastradas  Questao[]
+  explicacoesRevisadas ExplicacaoIA[]
+}
+
+model Simulado {
+  id          String     @id @default(uuid())
+  aluno       Aluno      @relation(fields: [alunoId], references: [id])
+  alunoId     String
+  questoes    Questao[]
+  qtdQuestoes Int
+  dataInicio  DateTime
+  dataFim     DateTime?
+  finalizado  Boolean    @default(false)
+  respostas   Resposta[]
+}
+
+model Questao {
+  id              String        @id @default(uuid())
+  enunciado       String
+  alternativas    String[]
+  respostaCorreta Int
+  area            String
+  ano             Int
+  autor           Administrador @relation(fields: [autorId], references: [id])
+  autorId         String
+  dataCriacao     DateTime      @default(now())
+  simulados       Simulado[]
+  respostas       Resposta[]
+  explicacao      ExplicacaoIA?
+}
+
+model Resposta {
+  id                     String   @id @default(uuid())
+  aluno                  Aluno    @relation(fields: [alunoId], references: [id])
+  alunoId                String
+  questao                Questao  @relation(fields: [questaoId], references: [id])
+  questaoId              String
+  alternativaSelecionada Int
+  correta                Boolean
+  explicacao             String?
+  dataResposta           DateTime @default(now())
+  tempoResposta          Float
+  simulado               Simulado @relation(fields: [simuladoId], references: [id])
+  simuladoId             String
+}
+
+model ExplicacaoIA {
+  id          String        @id @default(uuid())
+  questao     Questao       @relation(fields: [questaoId], references: [id])
+  questaoId   String        @unique
+  explicacao  String
+  revisada    Boolean       @default(false)
+  revisor     Administrador @relation(fields: [revisorId], references: [id])
+  revisorId   String
+  dataGeracao DateTime      @default(now())
+  links       String[]
+}
