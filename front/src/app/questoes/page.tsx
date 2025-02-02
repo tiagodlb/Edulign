@@ -1,11 +1,18 @@
-"use client"
+'use client'
 
-import { Search, Filter, Plus } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { SiteHeader } from "@/components/layout/site-header"
-import { AreaAvaliacao, TipoQuestao } from "@/types"
+import { Search, Filter, Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@/components/ui/table'
+import { SiteHeader } from '@/components/layout/site-header'
+import { AreaAvaliacao, TipoQuestao } from '@/types'
 
 export default function QuestoesPage() {
   return (
@@ -23,10 +30,7 @@ export default function QuestoesPage() {
         <div className="flex space-x-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Pesquisar questões..."
-              className="pl-10"
-            />
+            <Input placeholder="Pesquisar questões..." className="pl-10" />
           </div>
           <Button variant="outline">
             <Filter className="w-5 h-5 mr-2" />
@@ -47,7 +51,7 @@ export default function QuestoesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {questoesMock.map((questao) => (
+              {questoesMock.map(questao => (
                 <TableRow key={questao.id}>
                   <TableCell>{questao.id}</TableCell>
                   <TableCell className="max-w-md">
@@ -55,9 +59,7 @@ export default function QuestoesPage() {
                   </TableCell>
                   <TableCell>{questao.area}</TableCell>
                   <TableCell>{questao.tipo}</TableCell>
-                  <TableCell>
-                    {questao.dataCriacao.toLocaleDateString()}
-                  </TableCell>
+                  <TableCell>{questao.dataCriacao.toLocaleDateString()}</TableCell>
                   <TableCell>
                     <Button variant="link">Editar</Button>
                   </TableCell>
@@ -74,21 +76,24 @@ export default function QuestoesPage() {
 const questoesMock = [
   {
     id: 1,
-    enunciado: 'Em um sistema de equações lineares, qual é a interpretação geométrica das soluções quando as retas são paralelas?',
+    enunciado:
+      'Em um sistema de equações lineares, qual é a interpretação geométrica das soluções quando as retas são paralelas?',
     area: AreaAvaliacao.Exatas,
     tipo: TipoQuestao.ComponenteEspecifico,
     dataCriacao: new Date('2024-01-15')
   },
   {
     id: 2,
-    enunciado: 'Analise o impacto das redes sociais na formação da opinião pública e no processo democrático contemporâneo.',
+    enunciado:
+      'Analise o impacto das redes sociais na formação da opinião pública e no processo democrático contemporâneo.',
     area: AreaAvaliacao.Humanas,
     tipo: TipoQuestao.FormacaoGeral,
     dataCriacao: new Date('2024-02-01')
   },
   {
     id: 3,
-    enunciado: 'Descreva o processo de síntese proteica e sua importância para o funcionamento celular.',
+    enunciado:
+      'Descreva o processo de síntese proteica e sua importância para o funcionamento celular.',
     area: AreaAvaliacao.Saude,
     tipo: TipoQuestao.ComponenteEspecifico,
     dataCriacao: new Date('2024-02-15')

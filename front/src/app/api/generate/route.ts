@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
   try {
-    // Parse the request body
     const body = await request.json()
 
     if (!body || !body.question) {
