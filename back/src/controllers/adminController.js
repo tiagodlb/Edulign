@@ -25,7 +25,11 @@ export const deleteUser = asyncHandler(async (req, res) => {
     throw new AppError('ID do usuário não fornecido', 400);
   }
 
-  await adminService.deleteUser(id);
+  const user = await adminService.deleteUser(id);
+  if (!user) {
+    throw new AppError('Usuário não encontrado', 404);
+  }
+
   res.status(200).json({
     success: true,
     message: 'Usuário excluído com sucesso'
@@ -38,6 +42,14 @@ export const createQuestion = asyncHandler(async (req, res) => {
     success: true,
     message: 'Questão criada com sucesso',
     data: question
+  });
+});
+
+export const listQuestion = asyncHandler(async (req, res) => {
+  const users = await adminService.listQuestion;
+  res.status(200).json({
+    success: true,
+    data: users
   });
 });
 

@@ -88,6 +88,36 @@ export const userSchema = Joi.object({
     })
 });
 
+export const adminSchema = Joi.object({
+  name: Joi.string()
+    .min(2)
+    .max(50)
+    .pattern(patterns.name)
+    .required()
+    .messages(messages.name),
+
+  email: Joi.string()
+    .email()
+    .required()
+    .messages(messages.email),
+
+  password: Joi.string()
+    .min(8)
+    .pattern(patterns.password)
+    .required()
+    .messages(messages.password),
+
+  role: Joi.string()
+    .valid('admin')
+    .required()
+    .messages({
+      'any.only': 'Função deve ser student ou admin',
+      'any.required': 'Função é obrigatória'
+    })
+});
+
+
+
 // Question schema for creating and updating questions
 export const questionSchema = Joi.object({
   enunciado: Joi.string()
