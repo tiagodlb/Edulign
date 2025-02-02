@@ -32,3 +32,8 @@ export interface Question {
 export interface SimuladoDetailed extends Simulado {
   questions: Question[]
 }
+
+export enum TipoQuestao {
+  FormacaoGeral = 'FormacaoGeral',
+  ComponenteEspecifico = 'ComponenteEspecifico'
+}
