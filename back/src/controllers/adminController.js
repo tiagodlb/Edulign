@@ -46,10 +46,28 @@ export const createQuestion = asyncHandler(async (req, res) => {
 });
 
 export const listQuestion = asyncHandler(async (req, res) => {
-  const users = await adminService.listQuestion;
+  const questions = await adminService.listQuestion(); // Invocar a função
   res.status(200).json({
     success: true,
-    data: users
+    data: questions
+  });
+});
+
+export const deleteResponse = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!id) {
+    throw new AppError('ID da resposta não fornecido', 400);
+  }
+
+  const response = await adminService.deleteResponse(id);
+  if (!response) {
+    throw new AppError('Resposta não encontrada', 404);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: 'Resposta excluída com sucesso'
   });
 });
 
