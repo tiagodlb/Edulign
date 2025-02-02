@@ -14,6 +14,7 @@ const router = express.Router();
  *   description: Funcionalidades específicas para administradores
  */
 
+// CRUD DE USUÁRIOS 
 /**
  * @swagger
  * /admin/users:
@@ -102,6 +103,7 @@ router.delete('/users/:id',
   adminController.deleteUser
 );
 
+// CRUD DE QUESTION
 /**
  * @swagger
  * /admin/questions:
@@ -141,6 +143,13 @@ router.post('/questions',
   adminController.createQuestion
 );
 
+router.delete('/delete-questions/:id', 
+  authMiddleware,
+  adminMiddleware,
+  adminController.deleteResponse
+);
+
+// CRUD DE IA RESPONSE
 /**
  * @swagger
  * /admin/review-response:
@@ -171,6 +180,34 @@ router.put('/review-response',
   authMiddleware,
   adminMiddleware,
   adminController.reviewResponse
+);
+
+
+/**
+ * @swagger
+ * /admin/delete-response/{id}:
+ *   delete:
+ *     summary: Exclui uma resposta
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Resposta excluída com sucesso
+ *       404:
+ *         description: Resposta não encontrada
+ */
+router.delete('/delete-response/:id', 
+  authMiddleware,
+  adminMiddleware,
+  adminController.deleteResponse
 );
 
 export default router;
