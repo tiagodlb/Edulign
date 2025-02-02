@@ -1,14 +1,19 @@
-"use client"
+'use client'
 
-import * as React from "react"
+import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Clock, BookOpen, Plus, Search } from 'lucide-react'
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { SiteHeader } from "@/components/layout/site-header"
-import { StatusCiclo, AreaAvaliacao } from "@/types"
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardFooter } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -16,17 +21,47 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
+  DialogTrigger
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { type Simulado, StatusCiclo, AreaAvaliacao } from '@/types'
+import { SiteHeader } from '@/components/layout/site-header'
+
+const simuladosMock: Simulado[] = [
+  {
+    id: 1,
+    titulo: 'Simulado ENADE 2024.1',
+    area: AreaAvaliacao.Exatas,
+    status: StatusCiclo.EmPreparacao,
+    duracao: '4 horas',
+    questoes: 40
+  },
+  {
+    id: 2,
+    titulo: 'Simulado ENADE 2024.2',
+    area: AreaAvaliacao.Saude,
+    status: StatusCiclo.EmAndamento,
+    duracao: '4 horas',
+    questoes: 35
+  },
+  {
+    id: 3,
+    titulo: 'Simulado ENADE 2023.2',
+    area: AreaAvaliacao.Tecnologia,
+    status: StatusCiclo.Finalizado,
+    duracao: '4 horas',
+    questoes: 45
+  }
+]
 
 export default function SimuladosPage() {
-  const [searchTerm, setSearchTerm] = React.useState("")
-  const [selectedArea, setSelectedArea] = React.useState<AreaAvaliacao | "all">("all")
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedArea, setSelectedArea] = useState<AreaAvaliacao | 'all'>('all')
 
-  const filteredSimulados = simuladosMock.filter(simulado => 
-    simulado.titulo.toLowerCase().includes(searchTerm.toLowerCase()) &&
-    (selectedArea === "all" || simulado.area === selectedArea)
+  const filteredSimulados = simuladosMock.filter(
+    simulado =>
+      simulado.titulo.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      (selectedArea === 'all' || simulado.area === selectedArea)
   )
 
   return (
@@ -59,7 +94,7 @@ export default function SimuladosPage() {
                         <SelectValue placeholder="Selecione a área" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Object.values(AreaAvaliacao).map((area) => (
+                        {Object.values(AreaAvaliacao).map(area => (
                           <SelectItem key={area} value={area}>
                             {area}
                           </SelectItem>
@@ -92,17 +127,20 @@ export default function SimuladosPage() {
               <Input
                 placeholder="Pesquisar simulados..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
                 className="pl-10 w-full"
               />
             </div>
-            <Select value={selectedArea} onValueChange={(value: AreaAvaliacao | "all") => setSelectedArea(value)}>
+            <Select
+              value={selectedArea}
+              onValueChange={(value: AreaAvaliacao | 'all') => setSelectedArea(value)}
+            >
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filtrar por área" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as áreas</SelectItem>
-                {Object.values(AreaAvaliacao).map((area) => (
+                {Object.values(AreaAvaliacao).map(area => (
                   <SelectItem key={area} value={area}>
                     {area}
                   </SelectItem>
@@ -112,7 +150,7 @@ export default function SimuladosPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredSimulados.map((simulado) => (
+            {filteredSimulados.map(simulado => (
               <SimuladoCard key={simulado.id} {...simulado} />
             ))}
           </div>
@@ -122,16 +160,13 @@ export default function SimuladosPage() {
   )
 }
 
-interface SimuladoCardProps {
-  id: number
-  titulo: string
-  area: AreaAvaliacao
-  status: StatusCiclo
-  duracao: string
-  questoes: number
-}
+function SimuladoCard({ id, titulo, area, status, duracao, questoes }: Simulado) {
+  const router = useRouter()
 
-function SimuladoCard({ titulo, area, status, duracao, questoes }: Readonly<SimuladoCardProps>) {
+  const handleClick = () => {
+    router.push(`/simulados/${id}`)
+  }
+
   return (
     <Card className="flex flex-col h-full">
       <CardContent className="flex-grow pt-6 space-y-4">
@@ -155,58 +190,29 @@ function SimuladoCard({ titulo, area, status, duracao, questoes }: Readonly<Simu
         </div>
       </CardContent>
       <CardFooter className="pt-4">
-        <Button 
+        <Button
           className="w-full"
-          variant={status === StatusCiclo.Finalizado ? "secondary" : "default"}
+          variant={status === StatusCiclo.Finalizado ? 'secondary' : 'default'}
           disabled={status === StatusCiclo.Finalizado}
+          onClick={handleClick}
         >
-          {status === StatusCiclo.EmPreparacao ? 'Iniciar' : 
-           status === StatusCiclo.EmAndamento ? 'Continuar' : 'Visualizar Resultado'}
+          {status === StatusCiclo.EmPreparacao
+            ? 'Iniciar'
+            : status === StatusCiclo.EmAndamento
+            ? 'Continuar'
+            : 'Visualizar Resultado'}
         </Button>
       </CardFooter>
     </Card>
   )
 }
 
-function StatusBadge({ status }: Readonly<{ status: StatusCiclo }>) {
-  const variants = {
-    [StatusCiclo.EmPreparacao]: "warning",
-    [StatusCiclo.EmAndamento]: "default",
-    [StatusCiclo.Finalizado]: "secondary",
-  } as const
-
-  return (
-    //@ts-expect-error: Vai dar erro no argumento da variante, mas só ignorar
-    <Badge variant={variants[status]}>
-      {status}
-    </Badge>
-  )
-}
-
-const simuladosMock = [
-  {
-    id: 1,
-    titulo: 'Simulado ENADE 2024.1',
-    area: AreaAvaliacao.Exatas,
-    status: StatusCiclo.EmPreparacao,
-    duracao: '4 horas',
-    questoes: 40
-  },
-  {
-    id: 2,
-    titulo: 'Simulado ENADE 2024.2',
-    area: AreaAvaliacao.Saude,
-    status: StatusCiclo.EmAndamento,
-    duracao: '4 horas',
-    questoes: 35
-  },
-  {
-    id: 3,
-    titulo: 'Simulado ENADE 2023.2',
-    area: AreaAvaliacao.Tecnologia,
-    status: StatusCiclo.Finalizado,
-    duracao: '4 horas',
-    questoes: 45
+function StatusBadge({ status }: { status: StatusCiclo }) {
+  const variants: Record<StatusCiclo, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+    [StatusCiclo.EmPreparacao]: 'destructive',
+    [StatusCiclo.EmAndamento]: 'default',
+    [StatusCiclo.Finalizado]: 'secondary'
   }
-]
 
+  return <Badge variant={variants[status]}>{status}</Badge>
+}
