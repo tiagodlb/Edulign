@@ -1,68 +1,34 @@
 export enum StatusCiclo {
-  EmPreparacao = "EmPreparacao",
-  EmAndamento = "EmAndamento",
-  Finalizado = "Finalizado",
+  EmPreparacao = 'Em Preparação',
+  EmAndamento = 'Em Andamento',
+  Finalizado = 'Finalizado'
 }
 
 export enum AreaAvaliacao {
-  Saude = "Saude",
-  Exatas = "Exatas",
-  Humanas = "Humanas",
-  Tecnologia = "Tecnologia",
+  Exatas = 'Exatas',
+  Humanas = 'Humanas',
+  Biologicas = 'Biológicas',
+  Saude = 'Saúde',
+  Tecnologia = 'Tecnologia'
 }
 
-export enum TipoQuestao {
-  FormacaoGeral = "FormacaoGeral",
-  ComponenteEspecifico = "ComponenteEspecifico",
+export interface Simulado {
+  id: number
+  titulo: string
+  area: AreaAvaliacao
+  status: StatusCiclo
+  duracao: string
+  questoes: number
 }
 
-export interface CicloAvaliativo {
-  cicloId: number;
-  ano: number;
-  dataInicio: Date;
-  dataFim: Date;
-  cursos: Curso[];
-  status: StatusCiclo;
+export interface Question {
+  id: number
+  question: string
+  options: string[]
+  correctAnswer: string
+  explanation: string
 }
 
-export interface Curso {
-  cursoId: number;
-  nome: string;
-  area: AreaAvaliacao;
-  estudantes: Estudante[];
-  participante: boolean;
-}
-
-export interface Estudante {
-  matricula: string;
-  curso: Curso;
-  habilitadoEnade: boolean;
-}
-
-export interface Questao {
-  id: number;
-  enunciado: string;
-  alternativas: string[];
-  area: AreaAvaliacao;
-  respostaCorreta: number;
-  autor: string;
-  dataCriacao: Date;
-  status: string;
-}
-
-export interface QuestaoEnade extends Questao {
-  anoEnade: number;
-  componenteAvaliado: string;
-  tipo: TipoQuestao;
-  indiceDiscriminacao: number;
-  indiceDificuldade: number;
-}
-
-export interface RespostaEstudante {
-  respostaId: number;
-  estudante: Estudante;
-  questao: Questao;
-  alternativaSelecionada: number;
-  dataResposta: Date;
-  pontuacao: number;
+export interface SimuladoDetailed extends Simulado {
+  questions: Question[]
 }
