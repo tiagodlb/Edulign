@@ -3,7 +3,7 @@ import * as adminController from '../controllers/adminController.js';
 import authMiddleware from '../middleware/authMiddleware.js';
 import adminMiddleware from '../middleware/adminMiddleware.js';
 import validateRequest from '../middleware/joiValidationMiddleware.js';
-import { userSchema, questionSchema } from '../utils/validationSchemas.js';
+import { adminSchema, questionSchema } from '../utils/validationSchemas.js';
 
 const router = express.Router();
 
@@ -71,7 +71,7 @@ router.get('/users',
 router.post('/users',
   authMiddleware,
   adminMiddleware,
-  validateRequest(userSchema),
+  validateRequest(adminSchema),
   adminController.createAdmin  // Changed from createUser to createAdmin to match controller
 );
 
