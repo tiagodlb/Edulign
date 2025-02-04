@@ -1,6 +1,7 @@
 import { asyncHandler, AppError } from '../middleware/errorMiddleware.js';
 import * as adminService from '../services/adminService.js';
 
+// CONTROLER USER 
 export const listUsers = asyncHandler(async (req, res) => {
   const users = await adminService.listUsers();
   res.status(200).json({
@@ -36,6 +37,7 @@ export const deleteUser = asyncHandler(async (req, res) => {
   });
 });
 
+// CONTROLLER QUESTION  
 export const createQuestion = asyncHandler(async (req, res) => {
   const question = await adminService.createQuestion(req.body);
   res.status(201).json({
@@ -46,10 +48,28 @@ export const createQuestion = asyncHandler(async (req, res) => {
 });
 
 export const listQuestion = asyncHandler(async (req, res) => {
-  const users = await adminService.listQuestion;
+  const questions = await adminService.listQuestion(); // Invocar a função
   res.status(200).json({
     success: true,
-    data: users
+    data: questions
+  });
+});
+// CONTROLER RESPONSE
+export const deleteResponse = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!id) {
+    throw new AppError('ID da resposta não fornecido', 400);
+  }
+
+  const response = await adminService.deleteResponse(id);
+  if (!response) {
+    throw new AppError('Resposta não encontrada', 404);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: 'Resposta excluída com sucesso'
   });
 });
 
