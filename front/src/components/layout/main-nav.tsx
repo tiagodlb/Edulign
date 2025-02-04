@@ -61,7 +61,7 @@ export function MainNav() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    'text-sm transition-colors hover:text-primary leading-7 text-base',
+                    'transition-colors hover:text-primary leading-7 text-base',
                     pathname?.startsWith(item.href) ? 'text-primary' : 'text-muted-foreground'
                   )}
                 >
