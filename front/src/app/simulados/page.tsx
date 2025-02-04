@@ -214,5 +214,9 @@ function StatusBadge({ status }: { status: StatusCiclo }) {
     [StatusCiclo.Finalizado]: 'secondary'
   }
 
-  return <Badge variant={variants[status]}>{status}</Badge>
+  return (
+    <Badge variant={variants[status]} className="mt-1">
+      {status}
+    </Badge>
+  )
 }

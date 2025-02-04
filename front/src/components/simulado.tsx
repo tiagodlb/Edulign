@@ -23,13 +23,14 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import type { Question } from '@/types'
 import { useSimulado } from '@/hooks/use-simulado'
 import { formatTime } from '@/utils/formatTime'
+import { Badge } from './ui/badge'
 
 interface SimuladoProps {
   questions: Question[]
   timeLimit: number
 }
 
-export function Simulado({ questions, timeLimit }: SimuladoProps) {
+export function Simulado({ questions, timeLimit }: Readonly<SimuladoProps>) {
   const {
     currentPage,
     userAnswers,
@@ -90,7 +91,9 @@ export function Simulado({ questions, timeLimit }: SimuladoProps) {
   const renderQuestion = (question: Question, index: number) => (
     <div key={question.id} className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Questão {index + 1}</h2>
+        <h2 className="scroll-m-20 pb-2 text-3xl font-semibold tracking-tight mt-2">
+          Questão {index + 1}
+        </h2>
         <Button
           variant="outline"
           size="sm"
@@ -102,13 +105,16 @@ export function Simulado({ questions, timeLimit }: SimuladoProps) {
           }
         >
           <Flag className="mr-2 h-4 w-4" />
-          {userAnswers.find(ua => ua.questionId === question.id)?.isFlagged ? 'Desflag' : 'Flag'}
+          {userAnswers.find(ua => ua.questionId === question.id)?.isFlagged
+            ? 'Desmarcar'
+            : 'Marcar'}
         </Button>
       </div>
-      <p className="text-lg">{question.question}</p>
+      <p className="text-lg font-semibold">{question.question}</p>
       <RadioGroup
         onValueChange={value => handleAnswerSelect(question.id, value)}
-        value={userAnswers.find(ua => ua.questionId === question.id)?.selectedAnswer || ''}
+        value={userAnswers.find(ua => ua.questionId === question.id)?.selectedAnswer ?? ''}
+        className="border-b pb-2"
       >
         {question.options.map((option, optionIndex) => (
           <div
@@ -130,9 +136,11 @@ export function Simulado({ questions, timeLimit }: SimuladoProps) {
         <TabsTrigger value="detailed">Detalhado</TabsTrigger>
       </TabsList>
       <TabsContent value="summary">
-        <div className="space-y-6">
-          <h2 className="text-2xl font-bold">Resumo do Simulado</h2>
-          <p className="text-xl">
+        <div className="space-y-6 pt-4">
+          <h2 className="scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0">
+            Resumo do Simulado
+          </h2>
+          <p className="text-lg leading-7 [&:not(:first-child)]:mt-6">
             Sua pontuação: {calculateScore()} de {questions.length}
           </p>
           <Progress value={(calculateScore() / questions.length) * 100} className="w-full" />
@@ -162,7 +170,7 @@ export function Simulado({ questions, timeLimit }: SimuladoProps) {
         <ScrollArea className="h-[60vh]">
           {questions.map((q, index) => (
             <div key={q.id} className="mb-6 p-4 border rounded">
-              <h3 className="font-semibold mb-2">
+              <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight mb-2">
                 Questão {index + 1}: {q.question}
               </h3>
               <p
@@ -173,7 +181,7 @@ export function Simulado({ questions, timeLimit }: SimuladoProps) {
                 }`}
               >
                 Sua resposta:{' '}
-                {userAnswers.find(ua => ua.questionId === q.id)?.selectedAnswer || 'Não respondida'}
+                {userAnswers.find(ua => ua.questionId === q.id)?.selectedAnswer ?? 'Não respondida'}
               </p>
               {userAnswers.find(ua => ua.questionId === q.id)?.selectedAnswer !==
                 q.correctAnswer && (
@@ -199,7 +207,7 @@ export function Simulado({ questions, timeLimit }: SimuladoProps) {
                 </Button>
                 {aiResponses[q.id] && (
                   <div className="mt-2 p-2 bg-muted rounded">
-                    <p className="font-semibold">Resposta da IA:</p>
+                    <p className="font-semibold leading-none">Resposta da IA:</p>
                     <p>{aiResponses[q.id]}</p>
                   </div>
                 )}
@@ -235,7 +243,12 @@ export function Simulado({ questions, timeLimit }: SimuladoProps) {
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>
-            Simulado {showResults ? '- Resultados' : isReviewing ? '- Revisão' : ''}
+            <div className="flex justify-between items-start">
+              Simulado
+              <Badge variant={showResults ? 'secondary' : 'destructive'} className="ml-2 mt-1">
+                {showResults ? 'Resultados' : isReviewing ? 'Revisão' : 'Em Andamento'}
+              </Badge>
+            </div>
           </CardTitle>
           <div className="flex items-center space-x-4">
             {!showResults && (
@@ -257,7 +270,7 @@ export function Simulado({ questions, timeLimit }: SimuladoProps) {
           <div className="mb-4 space-y-2">
             <Progress value={progressPercentage} className="w-full" />
             <div className="flex justify-between text-sm text-muted-foreground">
-              <span>
+              <span className="font-medium leading-none">
                 Página: {currentPage + 1} de {totalPages}
               </span>
               <span>

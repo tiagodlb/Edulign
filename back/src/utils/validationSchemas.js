@@ -88,6 +88,36 @@ export const userSchema = Joi.object({
     })
 });
 
+export const adminSchema = Joi.object({
+  name: Joi.string()
+    .min(2)
+    .max(50)
+    .pattern(patterns.name)
+    .required()
+    .messages(messages.name),
+
+  email: Joi.string()
+    .email()
+    .required()
+    .messages(messages.email),
+
+  password: Joi.string()
+    .min(8)
+    .pattern(patterns.password)
+    .required()
+    .messages(messages.password),
+
+  role: Joi.string()
+    .valid('admin')
+    .required()
+    .messages({
+      'any.only': 'Função deve ser student ou admin',
+      'any.required': 'Função é obrigatória'
+    })
+});
+
+
+
 // Question schema for creating and updating questions
 export const questionSchema = Joi.object({
   enunciado: Joi.string()
@@ -164,5 +194,28 @@ export const reviewResponseSchema = Joi.object({
       'string.min': 'Resposta revisada deve ter no mínimo {#limit} caracteres',
       'string.max': 'Resposta revisada deve ter no máximo {#limit} caracteres',
       'any.required': 'Resposta revisada é obrigatória'
+    })
+});
+
+export const simulatedExamSchema = Joi.object({
+  knowledgeArea: Joi.string()
+    .min(2)
+    .max(50)
+    .required()
+    .messages({
+      'string.min': 'Área de conhecimento deve ter no mínimo {#limit} caracteres',
+      'string.max': 'Área de conhecimento deve ter no máximo {#limit} caracteres',
+      'any.required': 'Área de conhecimento é obrigatória'
+    }),
+  numberOfQuestions: Joi.number()
+    .integer()
+    .min(1)
+    .max(100)
+    .default(10) // Define o valor padrão como 10
+    .messages({
+      'number.base': 'Número de questões deve ser um número',
+      'number.integer': 'Número de questões deve ser um número inteiro',
+      'number.min': 'Número de questões deve ser maior ou igual a 1',
+      'number.max': 'Número de questões não pode ser maior que 100'
     })
 });

@@ -1,36 +1,36 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
-import { customFont } from "@/config/fonts";
-import { ThemeProvider } from "@/components/theme-provider";
+import type { Metadata } from 'next'
+import { Suspense } from 'react'
+import './globals.css'
+import { Toaster } from '@/components/ui/toaster'
+import { customFont } from '@/config/fonts'
+import { ThemeProvider } from '@/components/theme-provider'
+import Loading from '@/components/loading'
 
 export const metadata: Metadata = {
-  title: "Edulign",
-  description: "Plataforma de preparação para o ENADE",
-};
+  title: 'Edulign',
+  description: 'Plataforma de preparação para o ENADE'
+}
 
 export default function RootLayout({
   children,
-  params,
+  params
 }: Readonly<{
-  children: React.ReactNode;
-  params: { lang: string };
+  children: React.ReactNode
+  params: { lang: string }
 }>) {
   return (
     <html lang={params.lang} className={customFont.variable}>
-      <body
-        className={`font-sans antialiased ${customFont.className} tracking-tighter`}
-      >
+      <body className={`font-sans antialiased ${customFont.className} tracking-tighter`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <Suspense fallback={<Loading />}>{children}</Suspense>
           <Toaster />
         </ThemeProvider>
       </body>
     </html>
-  );
+  )
 }
