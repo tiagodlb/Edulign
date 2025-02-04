@@ -312,7 +312,6 @@ export default function SimuladoPage() {
           {simulado.titulo}
         </h1>
         <Simulado questions={simulado.questions} timeLimit={240} />{' '}
-        {/* Assuming 4 hours = 240 minutes */}
       </main>
     </div>
   )
