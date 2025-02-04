@@ -196,3 +196,26 @@ export const reviewResponseSchema = Joi.object({
       'any.required': 'Resposta revisada é obrigatória'
     })
 });
+
+export const simulatedExamSchema = Joi.object({
+  knowledgeArea: Joi.string()
+    .min(2)
+    .max(50)
+    .required()
+    .messages({
+      'string.min': 'Área de conhecimento deve ter no mínimo {#limit} caracteres',
+      'string.max': 'Área de conhecimento deve ter no máximo {#limit} caracteres',
+      'any.required': 'Área de conhecimento é obrigatória'
+    }),
+  numberOfQuestions: Joi.number()
+    .integer()
+    .min(1)
+    .max(100)
+    .default(10) // Define o valor padrão como 10
+    .messages({
+      'number.base': 'Número de questões deve ser um número',
+      'number.integer': 'Número de questões deve ser um número inteiro',
+      'number.min': 'Número de questões deve ser maior ou igual a 1',
+      'number.max': 'Número de questões não pode ser maior que 100'
+    })
+});
