@@ -1,5 +1,7 @@
 import { asyncHandler, AppError } from '../middleware/errorMiddleware.js';
 import * as studentService from '../services/studentService.js';
+import { simulatedExamSchema } from '../utils/validationSchemas.js';
+import * as studentRepository from '../repositories/studentRepository.js';
 
 // CONTROLLER PARA ACESSO DE PROVAS ENADE
 export const listEnadeExams = asyncHandler(async (req, res) => {
@@ -99,7 +101,7 @@ export const getStudentStatistics = asyncHandler(async (req, res) => {
 });
 
 export const exportStudentData = asyncHandler(async (req, res) => {
-  const userId = req.user.id; // ID do aluno autenticado
+  const userId = req.user.id;
   const pdfData = await studentService.exportStudentData(userId);
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', 'attachment; filename=student_data.pdf');
