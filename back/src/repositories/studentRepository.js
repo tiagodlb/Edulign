@@ -49,32 +49,95 @@ export const searchQuestions = async (query) => {
 };
 
 /**
- * Seleciona questões aleatórias do banco de dados
+ * Seleciona questões aleatórias do banco de dados com critérios específicos
+ * @param {Object} criteria - Critérios para seleção de questões
+ * @param {string} criteria.knowledgeArea - Área de conhecimento
+ * @param {number} criteria.year - Ano opcional
+ * @param {number} criteria.limit - Número de questões desejadas
+ * @returns {Promise<Array>} Array of questions
  */
-export const getRandomQuestions = async (knowledgeArea, limit) => {
-  const questions = await db.questao.findMany({
-    where: { area: knowledgeArea },
-    take: limit,
-    orderBy: { dataCriacao: 'desc' },
-  });
+export const getRandomQuestions = async (criteria) => {
+  const { knowledgeArea, year, limit } = criteria;
+  
+  // Construir where clause baseado nos critérios
+  const where = {
+    ativo: true,
+    area: knowledgeArea,
+    ...(year && { ano: year })
+  };
+
+  // Primeiro, conte o total de questões disponíveis
+  const totalQuestions = await db.questao.count({ where });
+
+  if (totalQuestions < limit) {
+    throw new AppError(`Apenas ${totalQuestions} questões disponíveis para os critérios selecionados`, 400);
+  }
+
+  // Buscar questões com ordenação aleatória
+  const questions = await db.$queryRaw`
+    SELECT 
+      id, 
+      enunciado, 
+      alternativas, 
+      respostaCorreta,
+      area,
+      ano
+    FROM "Questao"
+    WHERE area = ${knowledgeArea}
+    ${year ? db.sql`AND ano = ${year}` : db.sql``}
+    AND ativo = true
+    ORDER BY RANDOM()
+    LIMIT ${limit}
+  `;
 
   return questions;
 };
 
 /**
- * Cria um simulado no banco de dados
+ * Cria um simulado personalizado com questões aleatórias
+ * @param {Object} data - Dados para criação do simulado
+ * @param {string} data.userId - ID do usuário
+ * @param {string} data.knowledgeArea - Área de conhecimento
+ * @param {number} data.numberOfQuestions - Número de questões
+ * @param {number} data.year - Ano opcional
+ * @returns {Promise<Object>} Simulado criado
  */
-export const createSimulatedExam = async (userId, questionIds) => {
+export const createCustomSimulatedExam = async (data) => {
+  const { userId, knowledgeArea, numberOfQuestions, year } = data;
+
+  // Buscar questões aleatórias
+  const questions = await getRandomQuestions({
+    knowledgeArea,
+    year,
+    limit: numberOfQuestions
+  });
+
+  // Criar o simulado com as questões selecionadas
   const simulatedExam = await db.simulado.create({
     data: {
-      aluno: { connect: { usuarioId: userId } },
-      questoes: { connect: questionIds.map(id => ({ id })) },
-      qtdQuestoes: questionIds.length,
+      aluno: { 
+        connect: { usuarioId: userId } 
+      },
+      questoes: { 
+        connect: questions.map(q => ({ id: q.id })) 
+      },
+      qtdQuestoes: questions.length,
       dataInicio: new Date(),
+      area: knowledgeArea,
+      ...(year && { ano: year }),
+      status: 'EM_ANDAMENTO'
     },
     include: {
-      questoes: true,
-    },
+      questoes: {
+        select: {
+          id: true,
+          enunciado: true,
+          alternativas: true,
+          area: true,
+          ano: true
+        }
+      }
+    }
   });
 
   return simulatedExam;
