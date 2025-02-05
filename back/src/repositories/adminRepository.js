@@ -67,24 +67,32 @@ export const findAllUsers = async (options = { page: 1, limit: 10 }) => {
  * @returns {Promise<Object>} Created administrator user with their role
  */
 export const createAdmin = async (data) => {
-    try {
-        const admin = await db.usuario.create({
-            data: {
-                ...data,
-                administrador: true,
-                admin: {
-                    create: {}
-                }
-            },
-            select: {
-                ...userSelectFields,
-                admin: {
-                    select: {
-                        id: true
+        try {
+            const existingUser = await db.usuario.findUnique({
+                where: { email: data.email }
+            });
+    
+            if (existingUser) {
+                throw new AppError('Este email já está cadastrado no sistema', 409, 'email');
+            }
+    
+            const admin = await db.usuario.create({
+                data: {
+                    ...data,
+                    administrador: true,
+                    admin: {
+                        create: {}
+                    }
+                },
+                select: {
+                    ...userSelectFields,
+                    admin: {
+                        select: {
+                            id: true
+                        }
                     }
                 }
-            }
-        });
+            });
 
         if (!admin) {
             throw new AppError('Erro ao criar conta de administrador', 500);
@@ -333,3 +341,4 @@ export const listQuestions = async (options = { page: 1, limit: 10 }) => {
         }
     };
 };
+
