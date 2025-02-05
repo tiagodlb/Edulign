@@ -207,3 +207,129 @@ export const createQuestion = async (data) => {
         throw new AppError('Erro ao criar questão: ' + error.message, 500);
     }
 };
+
+const questionSelectFields = {
+    id: true,
+    enunciado: true,
+    alternativas: true,
+    respostaCorreta: true,
+    area: true,
+    ano: true,
+    dataCriacao: true,
+    autor: {
+        select: {
+            id: true,
+            usuario: {
+                select: {
+                    nome: true
+                }
+            }
+        }
+    }
+};
+
+/**
+ * Safely deletes a question from the system (soft delete)
+ * @param {string} id - The ID of the question to delete
+ * @returns {Promise<Object>} The deleted question data
+ */
+export const deleteQuestion = async (id) => {
+    try {
+        const question = await db.questao.update({
+            where: { id },
+            data: { ativo: false },
+            select: questionSelectFields
+        });
+
+        if (!question) {
+            throw new AppError('Questão não encontrada', 404);
+        }
+
+        return question;
+    } catch (error) {
+        if (error.code === 'P2025') {
+            throw new AppError('Questão não encontrada no sistema', 404);
+        }
+        throw new AppError('Erro ao excluir questão: ' + error.message, 500);
+    }
+};
+
+/**
+ * Updates question information with safety checks
+ * @param {string} id - The ID of the question to update
+ * @param {Object} data - The data to update
+ * @returns {Promise<Object>} Updated question information
+ */
+export const updateQuestion = async (id, data) => {
+    try {
+        const { id: questionId, dataCriacao, autor, ...safeData } = data;
+
+        const question = await db.questao.update({
+            where: { id },
+            data: safeData,
+            select: questionSelectFields
+        });
+
+        if (!question) {
+            throw new AppError('Questão não encontrada', 404);
+        }
+
+        return question;
+    } catch (error) {
+        if (error.code === 'P2025') {
+            throw new AppError('Questão não encontrada no sistema', 404);
+        }
+        if (error.code === 'P2002') {
+            throw new AppError('Questão duplicada encontrada', 409);
+        }
+        throw new AppError('Erro ao atualizar questão: ' + error.message, 500);
+    }
+};
+
+/**
+ * Lists all active questions with pagination support
+ * @param {Object} options - Query options for filtering and pagination
+ * @param {number} options.page - The page number to retrieve
+ * @param {number} options.limit - Number of items per page
+ * @param {string} options.search - Optional search term for filtering questions
+ * @returns {Promise<Array>} Array of active questions with pagination metadata
+ */
+export const listQuestions = async (options = { page: 1, limit: 10 }) => {
+    const { page, limit, search } = options;
+    const skip = (page - 1) * limit;
+
+    const where = {
+        ativo: true,
+        ...(search && {
+            OR: [
+                { enunciado: { contains: search, mode: 'insensitive' } },
+                { area: { contains: search, mode: 'insensitive' } }
+            ]
+        })
+    };
+
+    const [questions, total] = await Promise.all([
+        db.questao.findMany({
+            where,
+            select: questionSelectFields,
+            orderBy: { dataCriacao: 'desc' },
+            skip,
+            take: limit
+        }),
+        db.questao.count({ where })
+    ]);
+
+    if (!questions.length && total > 0) {
+        throw new AppError('Nenhuma questão encontrada na página especificada', 404);
+    }
+
+    return {
+        data: questions,
+        pagination: {
+            total,
+            pages: Math.ceil(total / limit),
+            currentPage: page,
+            perPage: limit
+        }
+    };
+};

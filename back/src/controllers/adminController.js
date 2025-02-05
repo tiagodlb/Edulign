@@ -54,6 +54,50 @@ export const listQuestion = asyncHandler(async (req, res) => {
     data: questions
   });
 });
+
+export const deleteQuestion = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!id) {
+    throw new AppError('ID da questão não fornecido', 400);
+  }
+
+  const question = await adminService.deleteQuestion(id);
+  if (!question) {
+    throw new AppError('Questão não encontrada', 404);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: 'Questão excluída com sucesso'
+  });
+});
+
+export const updateQuestion = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const updateData = req.body;
+
+  if (!id) {
+    throw new AppError('ID da questão não fornecido', 400);
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    throw new AppError('Dados para atualização não fornecidos', 400);
+  }
+
+  const updatedQuestion = await adminService.updateQuestion(id, updateData);
+  if (!updatedQuestion) {
+    throw new AppError('Questão não encontrada', 404);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: 'Questão atualizada com sucesso',
+    data: updatedQuestion
+  });
+});
+
+
 // CONTROLER RESPONSE
 export const deleteResponse = asyncHandler(async (req, res) => {
   const { id } = req.params;
