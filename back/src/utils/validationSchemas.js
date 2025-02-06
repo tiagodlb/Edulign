@@ -122,7 +122,6 @@ export const adminSchema = Joi.object({
 export const questionSchema = Joi.object({
   enunciado: Joi.string()
     .min(10)
-    .max(100000000)
     .required()
     .messages({
       'string.min': 'Enunciado deve ter no mínimo {#limit} caracteres',
@@ -145,8 +144,6 @@ export const questionSchema = Joi.object({
 
   respostaCorreta: Joi.number()
     .integer()
-    .min(0)
-    .max(4)
     .required()
     .messages({
       'number.base': 'Resposta correta deve ser um número',

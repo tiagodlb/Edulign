@@ -116,7 +116,7 @@ export const deleteUser = async (id) => {
     try {
         const user = await db.usuario.update({
             where: { id },
-            data: { ativo: false },
+            data: { ativo : false },
             select: userSelectFields
         });
 
