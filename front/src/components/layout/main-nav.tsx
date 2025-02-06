@@ -4,7 +4,7 @@ import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { GraduationCap, Menu } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ModeToggle } from '@/components/mode-toggle'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
@@ -21,13 +21,12 @@ export function MainNav() {
 
   return (
     <div className="flex items-center justify-between w-full">
-      <Link href="/dashboard" className="flex items-center space-x-2">
-        <GraduationCap className="h-6 w-6" />
-        <span className="scroll-m-20 text-xl font-semibold tracking-tight inline-block">
-          ENADE Simulados
-        </span>
+      {}
+      <Link href="/dashboard" className="flex items-center mr-20 ">
+        <img src="/eduligntitulo.svg" alt="Logo" className="h-14 w-auto object-contain" />
       </Link>
-      <div className="flex items-center space-x-6">
+
+      <div className="flex items-center space-x-4">
         <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
           {navItems.map(item => (
             <Link
@@ -42,8 +41,11 @@ export function MainNav() {
             </Link>
           ))}
         </nav>
+
         <ModeToggle />
-        <UserNav /> {/* Add the UserNav component here */}
+        <UserNav />
+
+        {/* Menu Mobile */}
         <Sheet>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="md:hidden">
