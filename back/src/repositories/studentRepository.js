@@ -109,21 +109,40 @@ export const getRandomQuestions = async (knowledgeArea, numberOfQuestions) => {
 /**
  * Cria um simulado
  */
-export const createSimulatedExam = async (studentId, questionIds) => {
+export const createSimulatedExam = async (userId, questionIds) => {
   try {
+    // First get the user with aluno relationship
+    const user = await db.usuario.findUnique({
+      where: {
+        id: userId
+      },
+      include: {
+        aluno: true
+      }
+    });
+
+    if (!user) {
+      throw new AppError('Usuário não encontrado', 404);
+    }
+
+    if (!user.aluno) {
+      throw new AppError('Usuário não está registrado como aluno', 404);
+    }
+
+    // Now create the simulado with the correct aluno ID
     const simulado = await db.simulado.create({
       data: {
         aluno: {
           connect: {
-            id: studentId
+            id: user.aluno.id // Use the aluno ID from the relationship
           }
         },
         questoes: {
           connect: questionIds.map(id => ({ id }))
         },
-        status: 'EmPreparacao',
         dataInicio: new Date(),
-        qtdQuestoes: questionIds.length
+        qtdQuestoes: questionIds.length,
+        finalizado: false
       },
       include: {
         questoes: {
@@ -132,11 +151,11 @@ export const createSimulatedExam = async (studentId, questionIds) => {
             enunciado: true,
             alternativas: true,
             area: true,
-            ano: true,
+            ano: true
           }
         },
         aluno: {
-          select: {
+          include: {
             usuario: {
               select: {
                 nome: true
@@ -145,17 +164,18 @@ export const createSimulatedExam = async (studentId, questionIds) => {
           }
         }
       }
-    })
+    });
 
     return {
       id: simulado.id,
-      titulo: `Simulado ${new Date().toLocaleDateString('pt-BR')}`,
+      titulo: `Simulado de ${simulado.aluno.usuario.nome}`,
       area: simulado.questoes[0]?.area || 'Não definida',
-      status: simulado.status,
-      duracao: '2 horas', // Pode ser configurável futuramente
+      duracao: '2 horas',
       questoes: simulado.questoes.length,
-      dataInicio: simulado.dataInicio
-    }
+      finalizado: simulado.finalizado,
+      dataInicio: simulado.dataInicio,
+      dataFim: simulado.dataFim
+    };
   } catch (error) {
     if (error.code === 'P2025') {
       throw new AppError('Aluno ou questões não encontrados', 404)
@@ -211,7 +231,6 @@ export const getStudentStatistics = async (studentId) => {
     const simulados = await db.simulado.findMany({
       where: {
         alunoId: studentId,
-        status: 'Finalizado'
       },
       include: {
         questoes: true,
