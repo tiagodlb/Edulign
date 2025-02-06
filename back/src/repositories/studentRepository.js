@@ -185,8 +185,69 @@ export const createSimulatedExam = async (userId, questionIds) => {
   }
 }
 
+export const getAllSimulatedExamsById = async (studentId) => {
+  try {
+    const user = await db.usuario.findUnique({
+      where: {
+        id: studentId
+      },
+      include: {
+        aluno: true
+      }
+    });
+
+    const simulados = await db.simulado.findMany({
+      where: {
+        aluno: {
+          id: user.aluno.id
+        }
+      },
+      include: {
+        questoes: {
+          select: {
+            id: true,
+            enunciado: true,
+            alternativas: true,
+            area: true,
+            ano: true
+          }
+        },
+        respostas: true,
+        aluno: {
+          include: {
+            usuario: {
+              select: {
+                nome: true
+              }
+            }
+          }
+        }
+      }
+    })
+
+    if (simulados.length === 0) {
+      return []
+    }
+
+    return simulados.map(simulado => ({
+      id: simulado.id,
+      titulo: `Simulado de ${simulado.aluno.usuario.nome}`,
+      area: simulado.questoes[0]?.area || 'Não definida',
+      qtdQuestoes: simulado.questoes.length,
+      finalizado: simulado.finalizado,
+      dataInicio: simulado.dataInicio,
+      dataFim: simulado.dataFim,
+      respostas: simulado.respostas
+    }))
+  } catch (error) {
+    if (error instanceof AppError) throw error
+    console.error('Error getting simulated exam:', error)
+    throw new AppError('Erro ao buscar simulado', 500)
+  }
+}
+
 /**
- * Recupera um simulado específico pelo ID
+ * Recupera os simulados específico pelo ID do aluno
  */
 export const getSimulatedExam = async (id, studentId) => {
   try {

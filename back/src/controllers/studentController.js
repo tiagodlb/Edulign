@@ -63,6 +63,21 @@ export const createSimulatedExam = async (req, res) => {
   }
 };
 
+export const getAllSimulatedExamsById = asyncHandler(async (req, res) => {
+  const { id } = req.params; // ID do simulado
+  if (!id) {
+    throw new AppError('ID do simulado não fornecido', 400);
+  }
+  const simulatedExam = await studentService.getAllSimulatedExamsById(id);
+  if (!simulatedExam) {
+    throw new AppError('Simulado não encontrado', 404);
+  }
+  res.status(200).json({
+    success: true,
+    data: simulatedExam
+  });
+});
+
 export const getSimulatedExam = asyncHandler(async (req, res) => {
   const { id } = req.params; // ID do simulado
   if (!id) {

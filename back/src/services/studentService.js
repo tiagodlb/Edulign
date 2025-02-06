@@ -54,6 +54,23 @@ export const createSimulatedExam = async (userId, knowledgeArea, numberOfQuestio
 /**
  * Recupera um simulado específico pelo ID
  */
+export const getAllSimulatedExamsById = async (id) => {
+  try {
+    const simulatedExam = await studentRepository.getAllSimulatedExamsById(id);
+    if (!simulatedExam) {
+      throw new AppError('Simulado não encontrado', 404);
+    }
+
+    return simulatedExam;
+  } catch (error) {
+    throw new AppError('Erro ao recuperar simulado: ' + error.message, error.status || 500);
+  }
+};
+
+
+/**
+ * Recupera um simulado específico pelo ID
+ */
 export const getSimulatedExam = async (id) => {
   try {
     const simulatedExam = await studentRepository.getSimulatedExam(id);

@@ -103,6 +103,12 @@ router.post(
   studentController.createSimulatedExam
 );
 
+router.get(
+  '/simulated-exams/:id',
+  authMiddleware,
+  studentController.getAllSimulatedExamsById
+);
+
 // ACESSAR SIMULADO
 /**
  * @swagger
@@ -125,7 +131,7 @@ router.post(
  *       404:
  *         description: Simulado não encontrado
  */
-router.get('/simulated-exams/:id', authMiddleware, studentController.getSimulatedExam);
+router.get('/simulated-exam/:id', authMiddleware, studentController.getSimulatedExam);
 
 // OBTER EXPLICAÇÃO DE QUESTÃO
 /**
