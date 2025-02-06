@@ -7,7 +7,7 @@ export function RegisterFormHeader() {
       >
         Crie sua conta no Edulign
       </h1>
-      <p className="text-sm text-muted-foreground md:text-base">
+      <p className="mt-6 text-sm text-muted-foreground md:text-base">
         Comece sua jornada para o sucesso no ENADE
       </p>
     </div>
