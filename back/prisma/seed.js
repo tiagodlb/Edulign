@@ -1,22 +1,63 @@
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcrypt'
+import Papa from 'papaparse'
+import fs from 'fs/promises'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
-// Initialize Prisma Client with explicit logging for debugging
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
 const prisma = new PrismaClient({
     log: ['query', 'info', 'warn', 'error'],
 });
 
-// Helper function to log each step of the seeding process
 function logStep(step) {
     console.log(`\n📍 ${step}`);
 }
 
-// Main seeding function with comprehensive error handling
+async function importQuestaoRows() {
+    try {
+        const csvPath = path.join(__dirname, 'Questao_rows.csv')
+        const fileContent = await fs.readFile(csvPath, 'utf8')
+        
+        return new Promise((resolve, reject) => {
+            Papa.parse(fileContent, {
+                header: true,
+                skipEmptyLines: true,
+                dynamicTyping: true,
+                complete: async (results) => {
+                    try {
+                        const questions = results.data.map(row => ({
+                            enunciado: row.enunciado || '',
+                            alternativas: [
+                                row.alternativa1 || '',
+                                row.alternativa2 || '',
+                                row.alternativa3 || '',
+                                row.alternativa4 || ''
+                            ].filter(alt => alt !== ''),
+                            respostaCorreta: parseInt(row.respostaCorreta) - 1,
+                            area: row.area || 'Geral',
+                            ano: row.ano || new Date().getFullYear(),
+                        }));
+                        resolve(questions);
+                    } catch (error) {
+                        reject(error);
+                    }
+                },
+                error: (error) => reject(error)
+            });
+        });
+    } catch (error) {
+        console.error('Error reading CSV file:', error);
+        return [];
+    }
+}
+
 async function main() {
     try {
         logStep('Starting database seed');
 
-        // Clean the database first
         logStep('Cleaning existing database records');
         await prisma.explicacaoIA.deleteMany();
         await prisma.resposta.deleteMany();
@@ -26,7 +67,6 @@ async function main() {
         await prisma.aluno.deleteMany();
         await prisma.usuario.deleteMany();
 
-        // Create administrator
         logStep('Creating administrator account');
         const adminPassword = await bcrypt.hash('Admin@123', 12);
         const admin = await prisma.usuario.create({
@@ -44,7 +84,6 @@ async function main() {
             }
         });
 
-        // Create student
         logStep('Creating student account');
         const studentPassword = await bcrypt.hash('Student@123', 12);
         const student = await prisma.usuario.create({
@@ -53,7 +92,7 @@ async function main() {
                 email: 'joao@gmail.com',
                 senha: studentPassword,
                 aluno: {
-                    create: {} // Creates associated Aluno record
+                    create: {}
                 }
             },
             include: {
@@ -61,56 +100,57 @@ async function main() {
             }
         });
 
-        // Create a question
-        logStep('Creating sample question');
-        const question = await prisma.questao.create({
-            data: {
-                enunciado: 'Qual é a capital do Brasil?',
-                alternativas: ['São Paulo', 'Rio de Janeiro', 'Brasília', 'Salvador'],
-                respostaCorreta: 2, // Index of Brasília (0-based)
-                area: 'Exatas',
-                ano: 2024,
-                autor: {
-                    connect: { id: admin.admin.id }
-                }
-            }
-        });
+        logStep('Importing questions from CSV');
+        const questionsData = await importQuestaoRows();
+        const questions = await Promise.all(
+            questionsData.map(questionData =>
+                prisma.questao.create({
+                    data: {
+                        ...questionData,
+                        autor: {
+                            connect: { id: admin.admin.id }
+                        }
+                    }
+                })
+            )
+        );
 
-        // Create a simulated exam
-        logStep('Creating simulated exam');
-        const simulado = await prisma.simulado.create({
-            data: {
-                aluno: {
-                    connect: { id: student.aluno.id }
-                },
-                questoes: {
-                    connect: [{ id: question.id }]
-                },
-                qtdQuestoes: 1,
-                dataInicio: new Date(),
-                finalizado: false
-            }
-        });
-
-        // Create a student response
-        logStep('Creating student response');
-        await prisma.resposta.create({
-            data: {
-                aluno: {
-                    connect: { id: student.aluno.id }
-                },
-                questao: {
-                    connect: { id: question.id }
-                },
-                alternativaSelecionada: 2,
-                correta: true,
-                explicacao: 'O aluno acertou a questão sobre a capital do Brasil.',
-                tempoResposta: 45.5,
-                simulado: {
-                    connect: { id: simulado.id }
+        // Create a simulated exam with the first imported question
+        if (questions.length > 0) {
+            logStep('Creating simulated exam');
+            const simulado = await prisma.simulado.create({
+                data: {
+                    aluno: {
+                        connect: { id: student.aluno.id }
+                    },
+                    questoes: {
+                        connect: [{ id: questions[0].id }]
+                    },
+                    qtdQuestoes: 1,
+                    dataInicio: new Date(),
+                    finalizado: false
                 }
-            }
-        });
+            });
+
+            logStep('Creating student response');
+            await prisma.resposta.create({
+                data: {
+                    aluno: {
+                        connect: { id: student.aluno.id }
+                    },
+                    questao: {
+                        connect: { id: questions[0].id }
+                    },
+                    alternativaSelecionada: 2,
+                    correta: true,
+                    explicacao: 'O aluno acertou a questão.',
+                    tempoResposta: 45.5,
+                    simulado: {
+                        connect: { id: simulado.id }
+                    }
+                }
+            });
+        }
 
         logStep('Seed completed successfully! ✅');
     } catch (error) {
@@ -119,7 +159,6 @@ async function main() {
     }
 }
 
-// Execute the seed with proper cleanup
 main()
     .catch((error) => {
         console.error('Fatal error:', error);
