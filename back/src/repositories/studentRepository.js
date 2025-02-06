@@ -196,6 +196,14 @@ export const getAllSimulatedExamsById = async (studentId) => {
       }
     });
 
+    if (!user) {
+      throw new AppError('Usuário não encontrado', 404);
+    }
+
+    if (!user.aluno) {
+      throw new AppError('Usuário não está registrado como aluno', 404);
+    }
+
     const simulados = await db.simulado.findMany({
       where: {
         aluno: {
@@ -289,9 +297,26 @@ export const getSimulatedExam = async (id, studentId) => {
  */
 export const getStudentStatistics = async (studentId) => {
   try {
+    const user = await db.usuario.findUnique({
+      where: {
+        id: studentId
+      },
+      include: {
+        aluno: true
+      }
+    });
+
+    if (!user) {
+      throw new AppError('Usuário não encontrado', 404);
+    }
+
+    if (!user.aluno) {
+      throw new AppError('Usuário não está registrado como aluno', 404);
+    }
+
     const simulados = await db.simulado.findMany({
       where: {
-        alunoId: studentId,
+        alunoId: user.aluno.id,
       },
       include: {
         questoes: true,
