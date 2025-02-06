@@ -36,7 +36,7 @@ async function main() {
                 senha: adminPassword,
                 administrador: true,
                 admin: {
-                    create: {} // Creates associated Administrador record
+                    create: {} 
                 }
             },
             include: {
@@ -68,7 +68,7 @@ async function main() {
                 enunciado: 'Qual é a capital do Brasil?',
                 alternativas: ['São Paulo', 'Rio de Janeiro', 'Brasília', 'Salvador'],
                 respostaCorreta: 2, // Index of Brasília (0-based)
-                area: 'Geografia',
+                area: 'Exatas',
                 ano: 2024,
                 autor: {
                     connect: { id: admin.admin.id }

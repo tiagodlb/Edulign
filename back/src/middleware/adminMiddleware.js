@@ -1,9 +1,3 @@
-/**
- * Checks if the user has administrator privileges and logs administrative actions
- * This middleware performs two important functions:
- * 1. Verifies that the user is an administrator
- * 2. Logs details about administrative actions for audit purposes
- */
 const adminMiddleware = async (req, res, next) => {
     try {
         if (!req.user) {
@@ -13,7 +7,11 @@ const adminMiddleware = async (req, res, next) => {
             });
         }
 
-        if (!req.user.administrador) {
+        // Debug: Log user object
+        console.log('Usuário autenticado:', req.user);
+
+        // Check admin privileges dynamically
+        if (!req.user.administrador && !req.user.isAdmin && req.user.role !== 'admin') {
             return res.status(403).json({
                 success: false,
                 message: 'Acesso negado. Privilégios de administrador necessários'

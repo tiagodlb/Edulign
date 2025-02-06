@@ -149,6 +149,87 @@ router.delete('/delete-questions/:id',
   adminController.deleteResponse
 );
 
+/**
+ * @swagger
+ * /admin/questions/{id}:
+ *   delete:
+ *     summary: Exclui uma questão
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Questão excluída com sucesso
+ *       404:
+ *         description: Questão não encontrada
+ */
+router.delete('/questions/:id',
+  authMiddleware,
+  adminMiddleware,
+  adminController.deleteQuestion
+);
+
+/**
+ * @swagger
+ * /admin/questions/{id}:
+ *   put:
+ *     summary: Atualiza uma questão existente
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               enunciado:
+ *                 type: string
+ *                 example: Qual é a capital do Brasil?
+ *               alternativas:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: [Brasília, São Paulo, Rio de Janeiro]
+ *               respostaCorreta:
+ *                 type: integer
+ *                 example: 0
+ *               area:
+ *                 type: string
+ *                 example: Geografia
+ *               ano:
+ *                 type: integer
+ *                 example: 2024
+ *     responses:
+ *       200:
+ *         description: Questão atualizada com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       404:
+ *         description: Questão não encontrada
+ */
+router.put('/questions/:id',
+  authMiddleware,
+  adminMiddleware,
+  validateRequest(questionSchema),
+  adminController.updateQuestion
+);
+
 // CRUD DE IA RESPONSE
 /**
  * @swagger

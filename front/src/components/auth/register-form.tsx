@@ -1,50 +1,81 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { PasswordInput } from "@/components/auth/password-input";
-import { RegisterFormHeader } from "@/components/auth/register-form-header";
-import { AuthLinks } from "@/components/auth/auth-links";
-import { AUTH_MESSAGES } from "@/lib/constants/auth";
-import { Loader2 } from 'lucide-react';
-import { AreaSelect } from "@/components/auth/area-select";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { registerFormSchema, type RegisterFormData } from "@/lib/validations/auth";
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { PasswordInput } from '@/components/auth/password-input'
+import { RegisterFormHeader } from '@/components/auth/register-form-header'
+import { AuthLinks } from '@/components/auth/auth-links'
+import { AUTH_MESSAGES } from '@/lib/constants/auth'
+import { Loader2 } from 'lucide-react'
+import { AreaSelect } from '@/components/auth/area-select'
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
+import { registerFormSchema, type RegisterFormData } from '@/lib/validations/auth'
+import { AuthService } from '@/lib/api/auth'
+import { useToast } from '@/hooks/use-toast'
 
 export function RegisterForm() {
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
+  const { toast } = useToast()
 
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerFormSchema),
     defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-      area: "",
-    },
-  });
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      area: ''
+    }
+  })
 
   const onSubmit = async (values: RegisterFormData) => {
-    setIsLoading(true);
+    setIsLoading(true)
     try {
-      // Implement your registration logic here
-      console.log("Registration values:", values);
-      // If registration is successful, redirect to dashboard or login page
-      router.push("/dashboard");
+      await AuthService.register({
+        name: values.name,
+        email: values.email,
+        password: values.password,
+        area: values.area
+      })
+
+      toast({
+        title: 'Conta criada com sucesso!',
+        description: 'Bem-vindo(a) ao Eduling!'
+      })
+
+      router.push('/dashboard')
     } catch (error) {
-      console.error("Registration error:", error);
-      // Handle registration error (e.g., show error message)
+      if (error instanceof Error) {
+        toast({
+          variant: 'destructive',
+          title: 'Erro ao criar conta',
+          description: error.message
+        })
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Erro ao criar conta',
+          description: 'Ocorreu um erro inesperado. Tente novamente mais tarde.'
+        })
+      }
+      console.error('Registration error:', error)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <Card className="w-full max-w-md border-0">
@@ -135,11 +166,7 @@ export function RegisterForm() {
                 </FormItem>
               )}
             />
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -156,6 +183,5 @@ export function RegisterForm() {
         <AuthLinks isRegisterPage />
       </CardFooter>
     </Card>
-  );
+  )
 }
-

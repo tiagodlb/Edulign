@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Clock, BookOpen, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -24,50 +24,121 @@ import {
   DialogTrigger
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { type Simulado, StatusCiclo, AreaAvaliacao } from '@/types'
+import { AreaAvaliacao } from '@/types'
 import { SiteHeader } from '@/components/layout/site-header'
+import { useToast } from '@/hooks/use-toast'
+import StudentService from '@/lib/api/student'
+import { getSimuladoStatus } from '@/utils/simulado'
 
-const simuladosMock: Simulado[] = [
-  {
-    id: 1,
-    titulo: 'Simulado ENADE 2024.1',
-    area: AreaAvaliacao.Exatas,
-    status: StatusCiclo.EmPreparacao,
-    duracao: '4 horas',
-    questoes: 40
-  },
-  {
-    id: 2,
-    titulo: 'Simulado ENADE 2024.2',
-    area: AreaAvaliacao.Saude,
-    status: StatusCiclo.EmAndamento,
-    duracao: '4 horas',
-    questoes: 35
-  },
-  {
-    id: 3,
-    titulo: 'Simulado ENADE 2023.2',
-    area: AreaAvaliacao.Tecnologia,
-    status: StatusCiclo.Finalizado,
-    duracao: '4 horas',
-    questoes: 45
-  }
-]
+type Simulado = {
+  id: string
+  titulo: string
+  area: string
+  qtdQuestoes: number
+  finalizado: boolean
+  dataInicio: string
+  dataFim: string | null
+  respostas: Array<{
+    id: string
+    alunoId: string
+    questaoId: string
+    alternativaSelecionada: number
+    correta: boolean
+    explicacao: string
+    dataResposta: string
+    tempoResposta: number
+    simuladoId: string
+  }>
+}
 
 export default function SimuladosPage() {
+  const [simulados, setSimulados] = useState<Simulado[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedArea, setSelectedArea] = useState<AreaAvaliacao | 'all'>('all')
+  const [isCreating, setIsCreating] = useState(false)
+  const [formData, setFormData] = useState({
+    area: '',
+    questoes: ''
+  })
+  const { toast } = useToast()
 
-  const filteredSimulados = simuladosMock.filter(
+  useEffect(() => {
+    loadSimulados()
+  }, [])
+
+  const loadSimulados = async () => {
+    try {
+      const response = await StudentService.getSimulados()
+      if ((response as any).success) {
+        setSimulados((response as any).data)
+      } else {
+        throw new Error('Falha ao carregar os simulados')
+      }
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao carregar simulados',
+        description: error instanceof Error ? error.message : 'Tente novamente mais tarde'
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleCreateSimulado = async () => {
+    if (!formData.area || !formData.questoes) {
+      toast({
+        variant: 'destructive',
+        title: 'Campos obrigatórios',
+        description: 'Preencha todos os campos para criar o simulado'
+      })
+      return
+    }
+
+    setIsCreating(true)
+    try {
+      await StudentService.createSimulado({
+        knowledgeArea: formData.area as AreaAvaliacao,
+        numberOfQuestions: Number.parseInt(formData.questoes)
+      })
+
+      toast({
+        title: 'Simulado criado!',
+        description: 'Seu simulado foi criado com sucesso'
+      })
+
+      await loadSimulados()
+      setFormData({ area: '', questoes: '' })
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao criar simulado',
+        description: error instanceof Error ? error.message : 'Tente novamente mais tarde'
+      })
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  const filteredSimulados = simulados.filter(
     simulado =>
       simulado.titulo.toLowerCase().includes(searchTerm.toLowerCase()) &&
       (selectedArea === 'all' || simulado.area === selectedArea)
   )
 
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary" />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <SiteHeader />
-      <main className="flex-grow container mx-auto px-4 py-8">
+      <main className="flex-grow container mx-auto px-8 py-8">
         <div className="max-w-7xl mx-auto space-y-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <h1 className="text-3xl font-bold">Simulados</h1>
@@ -89,7 +160,10 @@ export default function SimuladosPage() {
                     <Label htmlFor="area" className="text-right">
                       Área
                     </Label>
-                    <Select>
+                    <Select
+                      value={formData.area}
+                      onValueChange={value => setFormData(prev => ({ ...prev, area: value }))}
+                    >
                       <SelectTrigger id="area" className="col-span-3">
                         <SelectValue placeholder="Selecione a área" />
                       </SelectTrigger>
@@ -111,11 +185,24 @@ export default function SimuladosPage() {
                       type="number"
                       className="col-span-3"
                       placeholder="Número de questões"
+                      value={formData.questoes}
+                      onChange={e => setFormData(prev => ({ ...prev, questoes: e.target.value }))}
+                      min="1"
+                      max="50"
                     />
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button type="submit">Iniciar Simulado</Button>
+                  <Button onClick={handleCreateSimulado} disabled={isCreating}>
+                    {isCreating ? (
+                      <>
+                        <div className="animate-spin mr-2 h-4 w-4 border-2 border-b-transparent rounded-full" />
+                        Criando...
+                      </>
+                    ) : (
+                      'Iniciar Simulado'
+                    )}
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -149,19 +236,43 @@ export default function SimuladosPage() {
             </Select>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredSimulados.map(simulado => (
-              <SimuladoCard key={simulado.id} {...simulado} />
-            ))}
-          </div>
+          {filteredSimulados.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">
+                {searchTerm || selectedArea !== 'all'
+                  ? 'Nenhum simulado encontrado com os filtros atuais'
+                  : 'Nenhum simulado disponível ainda'}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredSimulados.map(simulado => (
+                <SimuladoCard key={simulado.id} {...simulado} />
+              ))}
+            </div>
+          )}
         </div>
       </main>
     </div>
   )
 }
 
-function SimuladoCard({ id, titulo, area, status, duracao, questoes }: Simulado) {
+function SimuladoCard({
+  id,
+  titulo,
+  area,
+  qtdQuestoes,
+  finalizado,
+  dataInicio,
+  dataFim,
+  respostas
+}: Simulado) {
   const router = useRouter()
+  const status = getSimuladoStatus({
+    finalizado,
+    dataInicio,
+    dataFim
+  })
 
   const handleClick = () => {
     router.push(`/simulados/${id}`)
@@ -181,24 +292,27 @@ function SimuladoCard({ id, titulo, area, status, duracao, questoes }: Simulado)
         <div className="space-y-2">
           <div className="flex items-center text-muted-foreground">
             <Clock className="w-5 h-5 mr-2" />
-            <span>{duracao}</span>
+            <span>{new Date(dataInicio).toLocaleString()}</span>
           </div>
           <div className="flex items-center text-muted-foreground">
             <BookOpen className="w-5 h-5 mr-2" />
-            <span>{questoes} questões</span>
+            <span>{qtdQuestoes} questões</span>
+          </div>
+          <div className="flex items-center text-muted-foreground">
+            <span>{respostas.length} respostas</span>
           </div>
         </div>
       </CardContent>
       <CardFooter className="pt-4">
         <Button
           className="w-full"
-          variant={status === StatusCiclo.Finalizado ? 'secondary' : 'default'}
-          disabled={status === StatusCiclo.Finalizado}
+          variant={status === 'Finalizado' ? 'secondary' : 'default'}
+          disabled={status === 'Finalizado'}
           onClick={handleClick}
         >
-          {status === StatusCiclo.EmPreparacao
+          {status === 'EmPreparacao'
             ? 'Iniciar'
-            : status === StatusCiclo.EmAndamento
+            : status === 'EmAndamento'
             ? 'Continuar'
             : 'Visualizar Resultado'}
         </Button>
@@ -207,11 +321,11 @@ function SimuladoCard({ id, titulo, area, status, duracao, questoes }: Simulado)
   )
 }
 
-function StatusBadge({ status }: { status: StatusCiclo }) {
-  const variants: Record<StatusCiclo, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    [StatusCiclo.EmPreparacao]: 'destructive',
-    [StatusCiclo.EmAndamento]: 'default',
-    [StatusCiclo.Finalizado]: 'secondary'
+function StatusBadge({ status }: { status: 'EmPreparacao' | 'EmAndamento' | 'Finalizado' }) {
+  const variants: Record<typeof status, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+    EmPreparacao: 'destructive',
+    EmAndamento: 'default',
+    Finalizado: 'secondary'
   }
 
   return (
