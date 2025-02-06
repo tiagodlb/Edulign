@@ -1,8 +1,8 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { AreaAvaliacao, StatusCiclo, type SimuladoDetailed } from '@/types'
-import { Simulado } from '@/components/simulado'
+import { AlertCircle, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -12,256 +12,27 @@ import {
   CardContent,
   CardFooter
 } from '@/components/ui/card'
-import { AlertCircle, ArrowLeft } from 'lucide-react'
 import { SiteHeader } from '@/components/layout/site-header'
+import { Simulado } from '@/components/simulado'
+import { useToast } from '@/hooks/use-toast'
+import StudentService from '@/lib/api/student'
 
-const simuladosMock: SimuladoDetailed[] = [
-  {
-    id: 1,
-    titulo: 'Simulado ENADE 2024.1 - 1',
-    area: AreaAvaliacao.Exatas,
-    status: StatusCiclo.EmPreparacao,
-    duracao: '4 horas',
-    questoes: 40,
-    questions: [
-      {
-        id: 1,
-        question: 'Qual é a capital do Brasil?',
-        options: ['São Paulo', 'Rio de Janeiro', 'Brasília', 'Salvador'],
-        correctAnswer: 'Brasília',
-        explanation: 'Brasília é a capital federal do Brasil desde 1960.'
-      },
-      {
-        id: 2,
-        question: "Quem escreveu 'Dom Casmurro'?",
-        options: ['José de Alencar', 'Machado de Assis', 'Clarice Lispector', 'Jorge Amado'],
-        correctAnswer: 'Machado de Assis',
-        explanation: 'Dom Casmurro é uma obra de Machado de Assis, publicada em 1899.'
-      },
-      {
-        id: 3,
-        question: "Quem escreveu 'Dom Casmurro'?",
-        options: ['José de Alencar', 'Machado de Assis', 'Clarice Lispector', 'Jorge Amado'],
-        correctAnswer: 'Machado de Assis',
-        explanation: 'Dom Casmurro é uma obra de Machado de Assis, publicada em 1899.'
-      },
-      {
-        id: 4,
-        question: 'Qual é a capital do Brasil?',
-        options: ['São Paulo', 'Rio de Janeiro', 'Brasília', 'Salvador'],
-        correctAnswer: 'Brasília',
-        explanation: 'Brasília é a capital federal do Brasil desde 1960.'
-      },
-      {
-        id: 5,
-        question: "Quem escreveu 'Dom Casmurro'?",
-        options: ['José de Alencar', 'Machado de Assis', 'Clarice Lispector', 'Jorge Amado'],
-        correctAnswer: 'Machado de Assis',
-        explanation: 'Dom Casmurro é uma obra de Machado de Assis, publicada em 1899.'
-      },
-      {
-        id: 6,
-        question: "Quem escreveu 'Dom Casmurro'?",
-        options: ['José de Alencar', 'Machado de Assis', 'Clarice Lispector', 'Jorge Amado'],
-        correctAnswer: 'Machado de Assis',
-        explanation: 'Dom Casmurro é uma obra de Machado de Assis, publicada em 1899.'
-      },
-      {
-        id: 7,
-        question: 'Qual é a capital do Brasil?',
-        options: ['São Paulo', 'Rio de Janeiro', 'Brasília', 'Salvador'],
-        correctAnswer: 'Brasília',
-        explanation: 'Brasília é a capital federal do Brasil desde 1960.'
-      },
-      {
-        id: 8,
-        question: "Quem escreveu 'Dom Casmurro'?",
-        options: ['José de Alencar', 'Machado de Assis', 'Clarice Lispector', 'Jorge Amado'],
-        correctAnswer: 'Machado de Assis',
-        explanation: 'Dom Casmurro é uma obra de Machado de Assis, publicada em 1899.'
-      },
-      {
-        id: 9,
-        question: "Quem escreveu 'Dom Casmurro'?",
-        options: ['José de Alencar', 'Machado de Assis', 'Clarice Lispector', 'Jorge Amado'],
-        correctAnswer: 'Machado de Assis',
-        explanation: 'Dom Casmurro é uma obra de Machado de Assis, publicada em 1899.'
-      },
-      {
-        id: 10,
-        question: 'Qual é a capital do Brasil?',
-        options: ['São Paulo', 'Rio de Janeiro', 'Brasília', 'Salvador'],
-        correctAnswer: 'Brasília',
-        explanation: 'Brasília é a capital federal do Brasil desde 1960.'
-      },
-      {
-        id: 11,
-        question: "Quem escreveu 'Dom Casmurro'?",
-        options: ['José de Alencar', 'Machado de Assis', 'Clarice Lispector', 'Jorge Amado'],
-        correctAnswer: 'Machado de Assis',
-        explanation: 'Dom Casmurro é uma obra de Machado de Assis, publicada em 1899.'
-      },
-      {
-        id: 12,
-        question: "Quem escreveu 'Dom Casmurro'?",
-        options: ['José de Alencar', 'Machado de Assis', 'Clarice Lispector', 'Jorge Amado'],
-        correctAnswer: 'Machado de Assis',
-        explanation: 'Dom Casmurro é uma obra de Machado de Assis, publicada em 1899.'
-      },
-
-      {
-        id: 13,
-        question: 'Qual é a capital do Brasil?',
-        options: ['São Paulo', 'Rio de Janeiro', 'Brasília', 'Salvador'],
-        correctAnswer: 'Brasília',
-        explanation: 'Brasília é a capital federal do Brasil desde 1960.'
-      },
-      {
-        id: 14,
-        question: "Quem escreveu 'Dom Casmurro'?",
-        options: ['José de Alencar', 'Machado de Assis', 'Clarice Lispector', 'Jorge Amado'],
-        correctAnswer: 'Machado de Assis',
-        explanation: 'Dom Casmurro é uma obra de Machado de Assis, publicada em 1899.'
-      },
-      {
-        id: 15,
-        question: "Quem escreveu 'Dom Casmurro'?",
-        options: ['José de Alencar', 'Machado de Assis', 'Clarice Lispector', 'Jorge Amado'],
-        correctAnswer: 'Machado de Assis',
-        explanation: 'Dom Casmurro é uma obra de Machado de Assis, publicada em 1899.'
-      },
-      {
-        id: 16,
-        question: 'Qual é a capital do Brasil?',
-        options: ['São Paulo', 'Rio de Janeiro', 'Brasília', 'Salvador'],
-        correctAnswer: 'Brasília',
-        explanation: 'Brasília é a capital federal do Brasil desde 1960.'
-      },
-      {
-        id: 17,
-        question: "Quem escreveu 'Dom Casmurro'?",
-        options: ['José de Alencar', 'Machado de Assis', 'Clarice Lispector', 'Jorge Amado'],
-        correctAnswer: 'Machado de Assis',
-        explanation: 'Dom Casmurro é uma obra de Machado de Assis, publicada em 1899.'
-      },
-      {
-        id: 18,
-        question: "Quem escreveu 'Dom Casmurro'?",
-        options: ['José de Alencar', 'Machado de Assis', 'Clarice Lispector', 'Jorge Amado'],
-        correctAnswer: 'Machado de Assis',
-        explanation: 'Dom Casmurro é uma obra de Machado de Assis, publicada em 1899.'
-      },
-      {
-        id: 19,
-        question: 'Qual é a capital do Brasil?',
-        options: ['São Paulo', 'Rio de Janeiro', 'Brasília', 'Salvador'],
-        correctAnswer: 'Brasília',
-        explanation: 'Brasília é a capital federal do Brasil desde 1960.'
-      },
-      {
-        id: 20,
-        question: "Quem escreveu 'Dom Casmurro'?",
-        options: ['José de Alencar', 'Machado de Assis', 'Clarice Lispector', 'Jorge Amado'],
-        correctAnswer: 'Machado de Assis',
-        explanation: 'Dom Casmurro é uma obra de Machado de Assis, publicada em 1899.'
-      },
-      {
-        id: 21,
-        question: "Quem escreveu 'Dom Casmurro'?",
-        options: ['José de Alencar', 'Machado de Assis', 'Clarice Lispector', 'Jorge Amado'],
-        correctAnswer: 'Machado de Assis',
-        explanation: 'Dom Casmurro é uma obra de Machado de Assis, publicada em 1899.'
-      },
-      {
-        id: 22,
-        question: 'Qual é a capital do Brasil?',
-        options: ['São Paulo', 'Rio de Janeiro', 'Brasília', 'Salvador'],
-        correctAnswer: 'Brasília',
-        explanation: 'Brasília é a capital federal do Brasil desde 1960.'
-      },
-      {
-        id: 23,
-        question: "Quem escreveu 'Dom Casmurro'?",
-        options: ['José de Alencar', 'Machado de Assis', 'Clarice Lispector', 'Jorge Amado'],
-        correctAnswer: 'Machado de Assis',
-        explanation: 'Dom Casmurro é uma obra de Machado de Assis, publicada em 1899.'
-      },
-      {
-        id: 24,
-        question: "Quem escreveu 'Dom Casmurro'?",
-        options: ['José de Alencar', 'Machado de Assis', 'Clarice Lispector', 'Jorge Amado'],
-        correctAnswer: 'Machado de Assis',
-        explanation: 'Dom Casmurro é uma obra de Machado de Assis, publicada em 1899.'
-      },
-      {
-        id: 25,
-        question: 'Qual é a capital do Brasil?',
-        options: ['São Paulo', 'Rio de Janeiro', 'Brasília', 'Salvador'],
-        correctAnswer: 'Brasília',
-        explanation: 'Brasília é a capital federal do Brasil desde 1960.'
-      },
-      {
-        id: 26,
-        question: "Quem escreveu 'Dom Casmurro'?",
-        options: ['José de Alencar', 'Machado de Assis', 'Clarice Lispector', 'Jorge Amado'],
-        correctAnswer: 'Machado de Assis',
-        explanation: 'Dom Casmurro é uma obra de Machado de Assis, publicada em 1899.'
-      },
-      {
-        id: 27,
-        question: "Quem escreveu 'Dom Casmurro'?",
-        options: ['José de Alencar', 'Machado de Assis', 'Clarice Lispector', 'Jorge Amado'],
-        correctAnswer: 'Machado de Assis',
-        explanation: 'Dom Casmurro é uma obra de Machado de Assis, publicada em 1899.'
-      },
-      {
-        id: 28,
-        question: 'Qual é a capital do Brasil?',
-        options: ['São Paulo', 'Rio de Janeiro', 'Brasília', 'Salvador'],
-        correctAnswer: 'Brasília',
-        explanation: 'Brasília é a capital federal do Brasil desde 1960.'
-      },
-      {
-        id: 29,
-        question: "Quem escreveu 'Dom Casmurro'?",
-        options: ['José de Alencar', 'Machado de Assis', 'Clarice Lispector', 'Jorge Amado'],
-        correctAnswer: 'Machado de Assis',
-        explanation: 'Dom Casmurro é uma obra de Machado de Assis, publicada em 1899.'
-      },
-      {
-        id: 30,
-        question: "Quem escreveu 'Dom Casmurro'?",
-        options: ['José de Alencar', 'Machado de Assis', 'Clarice Lispector', 'Jorge Amado'],
-        correctAnswer: 'Machado de Assis',
-        explanation: 'Dom Casmurro é uma obra de Machado de Assis, publicada em 1899.'
-      },
-      {
-        id: 31,
-        question: 'Qual é a capital do Brasil?',
-        options: ['São Paulo', 'Rio de Janeiro', 'Brasília', 'Salvador'],
-        correctAnswer: 'Brasília',
-        explanation: 'Brasília é a capital federal do Brasil desde 1960.'
-      },
-      {
-        id: 32,
-        question: "Quem escreveu 'Dom Casmurro'?",
-        options: ['José de Alencar', 'Machado de Assis', 'Clarice Lispector', 'Jorge Amado'],
-        correctAnswer: 'Machado de Assis',
-        explanation: 'Dom Casmurro é uma obra de Machado de Assis, publicada em 1899.'
-      },
-      {
-        id: 33,
-        question: "Quem escreveu 'Dom Casmurro'?",
-        options: ['José de Alencar', 'Machado de Assis', 'Clarice Lispector', 'Jorge Amado'],
-        correctAnswer: 'Machado de Assis',
-        explanation: 'Dom Casmurro é uma obra de Machado de Assis, publicada em 1899.'
-      }
-
-      // Add more questions as needed
-    ]
-  }
-  // Add more simulados as needed
-]
+type SimuladoResponse = {
+  id: string
+  alunoId: string
+  qtdQuestoes: number
+  dataInicio: string
+  dataFim: string | null
+  finalizado: boolean
+  questoes: Array<{
+    id: string
+    enunciado: string
+    alternativas: string[]
+    area: string
+    ano: number
+  }>
+  respostas: Array<any> // You might want to define a more specific type for respostas
+}
 
 function SimuladoNotFound() {
   const router = useRouter()
@@ -295,10 +66,45 @@ function SimuladoNotFound() {
 }
 
 export default function SimuladoPage() {
-  const params = useParams()
-  const id = Number(params.id)
+  const [simulado, setSimulado] = useState<SimuladoResponse | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const { id } = useParams()
+  const router = useRouter()
+  const { toast } = useToast()
 
-  const simulado = simuladosMock.find(s => s.id === id)
+  useEffect(() => {
+    loadSimulado()
+  }, [])
+
+  const loadSimulado = async () => {
+    if (!id) return
+    setIsLoading(true)
+    try {
+      const response = await StudentService.getSimuladoById(id as string)
+      if (response.success) {
+        setSimulado(response.data)
+      } else {
+        throw new Error('Failed to load simulado')
+      }
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao carregar simulado',
+        description: error instanceof Error ? error.message : 'Tente novamente mais tarde'
+      })
+      router.push('/simulados')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary" />
+      </div>
+    )
+  }
 
   if (!simulado) {
     return <SimuladoNotFound />
@@ -309,9 +115,18 @@ export default function SimuladoPage() {
       <SiteHeader />
       <main className="flex-grow container mx-auto px-4 py-8">
         <h1 className="scroll-m-20 text-3xl font-extrabold tracking-tight lg:text-4xl mb-8">
-          {simulado.titulo}
+          Simulado
         </h1>
-        <Simulado questions={simulado.questions} timeLimit={240} />{' '}
+        <Simulado
+          questions={simulado.questoes.map(q => ({
+            id: q.id,
+            question: q.enunciado,
+            options: q.alternativas,
+            correctAnswer: '', // This information is not provided in the API response
+            explanation: '' // This information is not provided in the API response
+          }))}
+          timeLimit={240} // You might want to calculate this based on qtdQuestoes or add it to the API response
+        />
       </main>
     </div>
   )

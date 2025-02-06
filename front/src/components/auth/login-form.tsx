@@ -1,55 +1,80 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { PasswordInput } from "@/components/auth/password-input";
-import { LoginFormHeader } from "@/components/auth/login-form-header";
-import { AuthLinks } from "@/components/auth/auth-links";
-import { AUTH_MESSAGES } from "@/lib/constants/auth";
-import { Loader2 } from 'lucide-react';
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { PasswordInput } from '@/components/auth/password-input'
+import { LoginFormHeader } from '@/components/auth/login-form-header'
+import { AuthLinks } from '@/components/auth/auth-links'
+import { AUTH_MESSAGES } from '@/lib/constants/auth'
+import { Loader2 } from 'lucide-react'
+import { AuthService } from '@/lib/api/auth'
+import { useToast } from '@/hooks/use-toast'
 
 const loginFormSchema = z.object({
-  email: z.string().email("Email inválido"),
-  password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
-  rememberMe: z.boolean().optional(),
-});
+  email: z.string().email('Email inválido'),
+  password: z.string().min(6, 'A senha deve ter pelo menos 6 caracteres'),
+  rememberMe: z.boolean().optional()
+})
 
-type LoginFormData = z.infer<typeof loginFormSchema>;
+type LoginFormData = z.infer<typeof loginFormSchema>
 
 export function LoginForm() {
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
+  const { toast } = useToast()
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginFormSchema),
     defaultValues: {
-      email: "",
-      password: "",
-      rememberMe: false,
-    },
-  });
+      email: '',
+      password: '',
+      rememberMe: false
+    }
+  })
 
   const onSubmit = async (values: LoginFormData) => {
-    setIsLoading(true);
+    setIsLoading(true)
     try {
-      // Implement your login logic here
-      console.log("Login values:", values);
-      // If login is successful, redirect to dashboard
-      router.push("/dashboard");
+      const response = await AuthService.login({
+        email: values.email,
+        password: values.password
+      })
+
+      if (values.rememberMe) {
+        // Store rememberMe preference
+        localStorage.setItem('rememberMe', 'true')
+      }
+
+      toast({
+        title: 'Login realizado com sucesso!',
+        description: `Bem-vindo(a), ${response.data.user.name}!`
+      })
+
+      router.push('/dashboard')
     } catch (error) {
-      console.error("Login error:", error);
-      // Handle login error (e.g., show error message)
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao fazer login',
+        description: error instanceof Error ? error.message : 'Ocorreu um erro inesperado'
+      })
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <>
@@ -109,19 +134,12 @@ export function LoginForm() {
                   />
                 </FormControl>
                 <div className="space-y-1 leading-none">
-                  <FormLabel htmlFor="rememberMe">
-                    Lembrar de mim por 30 dias
-                  </FormLabel>
+                  <FormLabel htmlFor="rememberMe">Lembrar de mim por 30 dias</FormLabel>
                 </div>
               </FormItem>
             )}
           />
-          <Button
-            type="submit"
-            className="w-full bg-primary hover:bg-primary-dark focus:ring-2 focus:ring-primary focus:ring-offset-2"
-            disabled={isLoading}
-            aria-live="polite"
-          >
+          <Button type="submit" className="w-full" disabled={isLoading} aria-live="polite">
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -135,5 +153,5 @@ export function LoginForm() {
       </Form>
       <AuthLinks />
     </>
-  );
+  )
 }

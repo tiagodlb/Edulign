@@ -16,9 +16,11 @@ export interface Simulado {
   id: number
   titulo: string
   area: AreaAvaliacao
-  status: StatusCiclo
   duracao: string
   questoes: number
+  finalizado: boolean
+  dataInicio: Date
+  dataFim?: Date | null
 }
 
 export interface Question {
