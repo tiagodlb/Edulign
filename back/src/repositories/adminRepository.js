@@ -6,7 +6,7 @@ const userSelectFields = {
     email: true,
     nome: true,
     administrador: true,
-    createdAt: true,
+    dataCriacao: true,  // Corrigido para usar dataCriacao
     ativo: true
 };
 
