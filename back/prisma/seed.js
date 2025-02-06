@@ -36,7 +36,7 @@ async function main() {
                 senha: adminPassword,
                 administrador: true,
                 admin: {
-                    create: {} // Creates associated Administrador record
+                    create: {} 
                 }
             },
             include: {
