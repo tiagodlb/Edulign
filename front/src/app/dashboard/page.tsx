@@ -11,7 +11,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <SiteHeader />
-      <main className="flex-grow container mx-auto px-4 py-12 sm:py-8">
+      <main className="flex-grow container mx-auto px-8 py-12 sm:py-8">
         <div className="max-w-7xl mx-auto space-y-8">
           <h1 className="text-3xl font-bold">Dashboard</h1>
 

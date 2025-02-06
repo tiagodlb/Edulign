@@ -117,7 +117,7 @@ export default function QuestoesPage() {
   return (
     <div>
       <SiteHeader />
-      <main className="w-full p-6 space-y-6">
+      <main className="flex-grow container mx-auto px-8 py-12 sm:py-8">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Banco de Questões</h1>
           <Button>
