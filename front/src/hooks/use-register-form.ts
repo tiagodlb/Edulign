@@ -1,3 +1,4 @@
+ /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useState } from "react";

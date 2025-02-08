@@ -18,7 +18,7 @@ function logStep(step) {
 
 async function importQuestaoRows() {
     try {
-        const csvPath = path.join(__dirname, 'Questao_rows.csv')
+        const csvPath = path.join(__dirname, 'Questao_rows_(2).csv')
         const fileContent = await fs.readFile(csvPath, 'utf8')
         
         return new Promise((resolve, reject) => {

@@ -259,6 +259,7 @@ export const getAllSimulatedExamsById = async (studentId) => {
  */
 export const getSimulatedExam = async (id, studentId) => {
   try {
+    // First check if the simulado exists and belongs to the student
     const simulado = await db.simulado.findFirst({
       where: {
         id,
@@ -272,11 +273,22 @@ export const getSimulatedExam = async (id, studentId) => {
             id: true,
             enunciado: true,
             alternativas: true,
+            respostaCorreta: true,
             area: true,
-            ano: true
+            ano: true,
           }
         },
-        respostas: true
+        respostas: {
+          select: {
+            id: true,
+            alternativaSelecionada: true,
+            correta: true,
+            questaoId: true,
+            explicacao: true,
+            dataResposta: true,
+            tempoResposta: true
+          }
+        }
       }
     })
 
@@ -284,7 +296,19 @@ export const getSimulatedExam = async (id, studentId) => {
       throw new AppError('Simulado não encontrado', 404)
     }
 
-    return simulado
+    // Log the raw data to see what we're getting
+    console.log('Raw simulado data:', JSON.stringify(simulado, null, 2))
+
+    // Ensure alternativas is always an array
+    const processedSimulado = {
+      ...simulado,
+      questoes: simulado.questoes.map(questao => ({
+        ...questao,
+        alternativas: Array.isArray(questao.alternativas) ? questao.alternativas : []
+      }))
+    }
+
+    return processedSimulado
   } catch (error) {
     if (error instanceof AppError) throw error
     console.error('Error getting simulated exam:', error)

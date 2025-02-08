@@ -178,7 +178,7 @@ const questoesMock = [
     id: 1,
     enunciado:
       'Em um sistema de equações lineares, qual é a interpretação geométrica das soluções quando as retas são paralelas?',
-    area: AreaAvaliacao.Exatas,
+    area: AreaAvaliacao.Arq_Urb,
     tipo: TipoQuestao.ComponenteEspecifico,
     dataCriacao: new Date('2024-01-15')
   },
@@ -186,7 +186,7 @@ const questoesMock = [
     id: 2,
     enunciado:
       'Analise o impacto das redes sociais na formação da opinião pública e no processo democrático contemporâneo.',
-    area: AreaAvaliacao.Humanas,
+    area: AreaAvaliacao.Arq_Urb,
     tipo: TipoQuestao.FormacaoGeral,
     dataCriacao: new Date('2024-02-01')
   },
@@ -194,7 +194,7 @@ const questoesMock = [
     id: 3,
     enunciado:
       'Descreva o processo de síntese proteica e sua importância para o funcionamento celular.',
-    area: AreaAvaliacao.Saude,
+    area: AreaAvaliacao.Arq_Urb,
     tipo: TipoQuestao.ComponenteEspecifico,
     dataCriacao: new Date('2024-02-15')
   }

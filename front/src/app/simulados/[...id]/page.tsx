@@ -1,3 +1,4 @@
+ /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -82,6 +83,7 @@ export default function SimuladoPage() {
     try {
       const response = await StudentService.getSimuladoById(id as string)
       if (response.success) {
+        console.log(response.data)
         setSimulado(response.data)
       } else {
         throw new Error('Failed to load simulado')

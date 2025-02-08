@@ -19,7 +19,7 @@ export default function RootLayout({
   params: { lang: string }
 }>) {
   return (
-    <html lang={params.lang} className={customFont.variable}>
+    <html lang={params.lang} className={customFont.variable} suppressHydrationWarning>
       <body className={`font-sans antialiased ${customFont.className} tracking-tighter`}>
         <ThemeProvider
           attribute="class"

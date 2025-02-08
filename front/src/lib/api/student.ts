@@ -191,7 +191,7 @@ export class StudentService {
       if (!response.data.success) {
         throw new Error(response.data.message || 'Erro ao buscar simulado')
       }
-
+      console.log(response.data)
       return response.data
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 404) {
