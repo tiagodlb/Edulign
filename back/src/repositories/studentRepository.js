@@ -394,11 +394,105 @@ export const getStudentStatistics = async (studentId) => {
   }
 }
 
+export const updateSimulatedExam = async (examId, updateData) => {
+  try {
+    const { answers, completed, dataFim } = updateData;
+
+    // Start a transaction to ensure data consistency
+    const result = await db.$transaction(async (prisma) => {
+      // Update the simulado
+      const updatedSimulado = await prisma.simulado.update({
+        where: { id: examId },
+        data: {
+          finalizado: completed,
+          dataFim
+        }
+      });
+
+      // If there are answers, create or update them
+      if (answers && answers.length > 0) {
+        for (const answer of answers) {
+          await prisma.resposta.upsert({
+            where: {
+              simuladoId_questaoId: {
+                simuladoId: examId,
+                questaoId: answer.questionId
+              }
+            },
+            create: {
+              simuladoId: examId,
+              questaoId: answer.questionId,
+              alternativaSelecionada: answer.selectedAnswer,
+              tempoResposta: answer.timeSpent,
+              dataResposta: new Date()
+            },
+            update: {
+              alternativaSelecionada: answer.selectedAnswer,
+              tempoResposta: answer.timeSpent,
+              dataResposta: new Date()
+            }
+          });
+        }
+      }
+
+      return updatedSimulado;
+    });
+
+    return result;
+  } catch (error) {
+    if (error.code === 'P2025') {
+      throw new AppError('Simulado não encontrado', 404);
+    }
+    throw new AppError('Erro ao atualizar simulado', 500);
+  }
+};
+
+export const getQuestionById = async (questionId) => {
+  try {
+    const question = await db.questao.findUnique({
+      where: { id: questionId },
+      include: {
+        explanation: true
+      }
+    });
+
+    return question;
+  } catch (error) {
+    throw new AppError('Erro ao buscar questão', 500);
+  }
+};
+
+export const updateQuestionExplanation = async (questionId, content, generatedAt) => {
+  try {
+    const explanation = await db.explicacao.upsert({
+      where: {
+        questaoId: questionId
+      },
+      update: {
+        content,
+        generatedAt
+      },
+      create: {
+        questaoId: questionId,
+        content,
+        generatedAt
+      }
+    });
+
+    return explanation;
+  } catch (error) {
+    throw new AppError('Erro ao atualizar explicação', 500);
+  }
+};
+
+
 export default {
   findExams,
   searchQuestions,
   getRandomQuestions,
   createSimulatedExam,
   getSimulatedExam,
-  getStudentStatistics
+  getStudentStatistics,
+  updateSimulatedExam,
+  updateQuestionExplanation
 }

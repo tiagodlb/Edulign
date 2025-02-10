@@ -2,7 +2,7 @@ import express from 'express';
 import * as studentController from '../controllers/studentController.js';
 import authMiddleware from '../middleware/authMiddleware.js';
 import validateRequest from '../middleware/joiValidationMiddleware.js';
-import { simulatedExamSchema } from '../utils/validationSchemas.js';
+import { simulatedExamSchema, simulatedExamUpdateSchema, questionIdSchema } from '../utils/validationSchemas.js';
 
 const router = express.Router();
 
@@ -104,7 +104,7 @@ router.post(
 );
 
 router.get(
-  '/simulated-exams/:id',
+  '/simulated-exams',
   authMiddleware,
   studentController.getAllSimulatedExamsById
 );
@@ -133,6 +133,57 @@ router.get(
  */
 router.get('/simulated-exam/:id', authMiddleware, studentController.getSimulatedExam);
 
+/**
+ * @swagger
+ * /student/simulated-exams/{id}:
+ *   put:
+ *     summary: Atualiza um simulado existente
+ *     tags: [Student]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               answers:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     questionId:
+ *                       type: string
+ *                       format: uuid
+ *                     selectedAnswer:
+ *                       type: string
+ *                     timeSpent:
+ *                       type: number
+ *               completed:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Simulado atualizado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       404:
+ *         description: Simulado não encontrado
+ */
+router.put(
+  '/simulated-exams/:id',
+  authMiddleware,
+  validateRequest(simulatedExamUpdateSchema),
+  studentController.updateSimulatedExam
+);
+
 // OBTER EXPLICAÇÃO DE QUESTÃO
 /**
  * @swagger
@@ -149,13 +200,38 @@ router.get('/simulated-exam/:id', authMiddleware, studentController.getSimulated
  *         schema:
  *           type: string
  *           format: uuid
+ *         description: ID da questão
  *     responses:
  *       200:
  *         description: Explicação obtida com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     explanation:
+ *                       type: string
+ *                     questionId:
+ *                       type: string
+ *                     generatedAt:
+ *                       type: string
+ *                       format: date-time
  *       404:
  *         description: Questão não encontrada
+ *       500:
+ *         description: Erro ao gerar explicação
  */
-router.get('/questions/:id/explanation', authMiddleware, studentController.getQuestionExplanation);
+router.get(
+  '/questions/:id/explanation',
+  authMiddleware,
+  validateRequest(questionIdSchema),
+  studentController.getQuestionExplanation
+);
 
 // VISUALIZAR ESTATÍSTICAS
 /**
@@ -190,5 +266,61 @@ router.get('/statistics', authMiddleware, studentController.getStudentStatistics
  *         description: Dados do aluno não encontrados
  */
 router.get('/export-data', authMiddleware, studentController.exportStudentData);
+
+/**
+ * @swagger
+ * /student/simulated-exams/ai-enade:
+ *   post:
+ *     summary: Cria um simulado ENADE personalizado usando IA
+ *     tags: [Student]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               area:
+ *                 type: string
+ *                 example: "Computação"
+ *               subjects:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["Estruturas de Dados", "Algoritmos", "Banco de Dados"]
+ *               numberOfQuestions:
+ *                 type: integer
+ *                 minimum: 5
+ *                 maximum: 30
+ *                 example: 10
+ *     responses:
+ *       201:
+ *         description: Simulado ENADE criado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ */
+router.post(
+  '/simulated-exams/ai-enade',
+  authMiddleware,
+  validateRequest(aiEnadeSimulatedExamSchema),
+  studentController.createAiSimulatedExam
+);
+
+// utils/validationSchemas.js
+export const aiEnadeSimulatedExamSchema = Joi.object({
+  area: Joi.string().required(),
+  subjects: Joi.array()
+    .items(Joi.string())
+    .min(1)
+    .max(5)
+    .required(),
+  numberOfQuestions: Joi.number()
+    .integer()
+    .min(5)
+    .max(30)
+    .required()
+});
 
 export default router;

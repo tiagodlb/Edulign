@@ -1,4 +1,3 @@
- /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -32,7 +31,7 @@ type SimuladoResponse = {
     area: string
     ano: number
   }>
-  respostas: Array<any> // You might want to define a more specific type for respostas
+  respostas: Array<any>
 }
 
 function SimuladoNotFound() {
@@ -124,10 +123,10 @@ export default function SimuladoPage() {
             id: q.id,
             question: q.enunciado,
             options: q.alternativas,
-            correctAnswer: '', // This information is not provided in the API response
-            explanation: '' // This information is not provided in the API response
+            correctAnswer: '',
+            explanation: ''
           }))}
-          timeLimit={240} // You might want to calculate this based on qtdQuestoes or add it to the API response
+          timeLimit={240}
         />
       </main>
     </div>

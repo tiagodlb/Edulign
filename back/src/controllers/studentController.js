@@ -93,15 +93,19 @@ export const getSimulatedExam = asyncHandler(async (req, res) => {
   });
 });
 
-export const getQuestionExplanation = asyncHandler(async (req, res) => {
-  const { questionId } = req.params; // ID da questão
-  if (!questionId) {
-    throw new AppError('ID da questão não fornecido', 400);
-  }
-  const explanation = await studentService.getQuestionExplanation(questionId);
+export const updateSimulatedExam = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { answers, completed } = req.body;
+  const userId = req.user.id;
+
+  const updatedExam = await studentService.updateSimulatedExam(id, userId, {
+    answers,
+    completed
+  });
+
   res.status(200).json({
     success: true,
-    data: explanation
+    data: updatedExam
   });
 });
 
@@ -122,3 +126,69 @@ export const exportStudentData = asyncHandler(async (req, res) => {
   res.setHeader('Content-Disposition', 'attachment; filename=student_data.pdf');
   res.status(200).send(pdfData);
 });
+
+export const getQuestionExplanation = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.id;
+
+  const explanation = await studentService.getQuestionExplanation(id, userId);
+
+  res.status(200).json({
+    success: true,
+    data: explanation
+  });
+});
+
+export const createAiSimulatedExam = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const { area, subjects, numberOfQuestions } = req.body;
+
+  // Gerar questões com IA
+  const questions = await generateSimulatedExam({
+    area,
+    subjects,
+    numberOfQuestions
+  });
+
+  // Salvar questões no banco
+  const savedQuestions = await Promise.all(
+    questions.map(q => saveEnadeQuestion(q))
+  );
+
+  // Criar simulado com as questões geradas
+  const simulado = await studentRepository.createSimulatedExam(userId, {
+    title: `Simulado ENADE - ${area}`,
+    questions: savedQuestions.map(q => q.id),
+    timeLimit: numberOfQuestions * 3, // 3 minutos por questão
+    type: 'ENADE_AI',
+    area
+  });
+
+  res.status(201).json({
+    success: true,
+    data: simulado
+  });
+});
+
+// Salvar questão no formato ENADE
+const saveEnadeQuestion = async (questionData) => {
+  try {
+    return await db.questao.create({
+      data: {
+        enunciado: questionData.enunciado,
+        suportes: questionData.suportes,
+        comando: questionData.comando,
+        alternativas: questionData.alternativas,
+        competencias: questionData.competencias,
+        nivel: questionData.nivel,
+        topicos: questionData.topicos,
+        referencias: questionData.referencias,
+        area: questionData.area,
+        tipo: 'ENADE_AI',
+        dataCriacao: new Date()
+      }
+    });
+  } catch (error) {
+    throw new AppError('Erro ao salvar questão ENADE', 500);
+  }
+};

@@ -176,6 +176,10 @@ export const questionSchema = Joi.object({
     })
 });
 
+export const questionIdSchema = Joi.object({
+  id: Joi.string().uuid().required()
+});
+
 // Schema for reviewing AI responses
 export const reviewResponseSchema = Joi.object({
   responseId: Joi.string()
@@ -216,4 +220,15 @@ export const simulatedExamSchema = Joi.object({
       'number.min': 'Número de questões deve ser maior ou igual a 1',
       'number.max': 'Número de questões não pode ser maior que 100'
     })
+});
+
+export const simulatedExamUpdateSchema = Joi.object({
+  answers: Joi.array().items(
+    Joi.object({
+      questionId: Joi.string().uuid().required(),
+      selectedAnswer: Joi.string().required(),
+      timeSpent: Joi.number().min(0).required()
+    })
+  ),
+  completed: Joi.boolean().required()
 });
