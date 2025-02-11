@@ -1,84 +1,77 @@
-"use client";
-import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { AlertCircle, ArrowLeft, Clock } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { SiteHeader } from "@/components/layout/site-header";
-import { Simulado } from "@/components/simulado";
-import { useToast } from "@/hooks/use-toast";
-import StudentService from "@/lib/api/student";
+"use client"
+import { useState, useEffect } from "react"
+import { useParams, useRouter } from "next/navigation"
+import { AlertCircle, ArrowLeft, Clock } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { SiteHeader } from "@/components/layout/site-header"
+import { Simulado } from "@/components/simulado"
+import { useToast } from "@/hooks/use-toast"
+import StudentService from "@/lib/api/student"
 
 // Types
 interface Alternativa {
-  id: string;
-  texto: string;
-  correta: boolean;
-  justificativa: string;
-  questaoId: string;
+  id: string
+  texto: string
+  correta: boolean
+  justificativa: string
+  questaoId: string
 }
 
 interface Suporte {
-  id: string;
-  tipo: string;
-  conteudo: string;
-  questaoId: string;
+  id: string
+  tipo: string
+  conteudo: string
+  questaoId: string
 }
 
 interface Questao {
-  id: string;
-  enunciado: string;
-  comando: string;
-  area: string;
-  tipo: string;
-  nivel: string;
-  alternativas: Alternativa[];
-  suportes: Suporte[];
-  topicos: string[];
-  competencias: string[];
-  referencias: string[];
-  dataCriacao: string;
-  ano: number | null;
-  cadastradoPorId: string | null;
+  id: string
+  enunciado: string
+  comando: string
+  area: string
+  tipo: string
+  nivel: string
+  alternativas: Alternativa[]
+  suportes: Suporte[]
+  topicos: string[]
+  competencias: string[]
+  referencias: string[]
+  dataCriacao: string
+  ano: number | null
+  cadastradoPorId: string | null
 }
 
 interface Resposta {
-  id: string;
-  alunoId: string;
-  questaoId: string;
-  alternativaId: string;
-  correta: boolean;
-  dataResposta: string;
-  tempoResposta: number;
-  simuladoId: string;
-  alternativa: Alternativa;
+  id: string
+  alunoId: string
+  questaoId: string
+  alternativaId: string
+  correta: boolean
+  dataResposta: string
+  tempoResposta: number
+  simuladoId: string
+  alternativa: Alternativa
 }
 
 interface SimuladoResponse {
-  id: string;
-  titulo: string;
-  tipo: "NORMAL" | "ENADE_AI";
-  area: string;
-  tempoLimite: number;
-  alunoId: string;
-  qtdQuestoes: number;
-  dataInicio: string;
-  dataFim: string | null;
-  finalizado: boolean;
-  questoes: Questao[];
-  respostas: Resposta[];
+  id: string
+  titulo: string
+  tipo: "NORMAL" | "ENADE_AI"
+  area: string
+  tempoLimite: number
+  alunoId: string
+  qtdQuestoes: number
+  dataInicio: string
+  dataFim: string | null
+  finalizado: boolean
+  questoes: Questao[]
+  respostas: Resposta[]
 }
 
 function SimuladoNotFound() {
-  const router = useRouter();
+  const router = useRouter()
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <SiteHeader />
@@ -89,8 +82,7 @@ function SimuladoNotFound() {
             Simulado não encontrado
           </CardTitle>
           <CardDescription>
-            Não foi possível encontrar o simulado solicitado. Ele pode ter sido
-            removido ou o ID fornecido é inválido.
+            Não foi possível encontrar o simulado solicitado. Ele pode ter sido removido ou o ID fornecido é inválido.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -104,53 +96,46 @@ function SimuladoNotFound() {
         </CardFooter>
       </Card>
     </div>
-  );
+  )
 }
 
 export default function SimuladoPage() {
-  const [simulado, setSimulado] = useState<SimuladoResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { id } = useParams();
-  const router = useRouter();
-  const { toast } = useToast();
+  const [simulado, setSimulado] = useState<SimuladoResponse | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { id } = useParams()
+  const router = useRouter()
+  const { toast } = useToast()
 
   useEffect(() => {
-    loadSimulado();
-  }, []);
+    loadSimulado()
+  }, [])
 
   const loadSimulado = async () => {
-    if (!id) return;
-    setIsLoading(true);
+    if (!id) return
+    setIsLoading(true)
     try {
-      const response = await StudentService.getSimuladoById(id as string);
+      const response = await StudentService.getSimuladoById(id as string)
       if (response.success) {
-        setSimulado(response.data);
+        setSimulado(response.data)
       } else {
-        throw new Error("Failed to load simulado");
+        throw new Error("Failed to load simulado")
       }
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Erro ao carregar simulado",
-        description:
-          error instanceof Error ? error.message : "Tente novamente mais tarde",
-      });
-      router.push("/simulados");
+        description: error instanceof Error ? error.message : "Tente novamente mais tarde",
+      })
+      router.push("/simulados")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
-  const handleComplete = async (
-    answers: Array<{
-      questionId: string;
-      selectedAnswer: string;
-      timeSpent: number;
-    }>
-  ) => {
-    if (!simulado) return;
-    setIsSubmitting(true);
+  const handleComplete = async (answers: Array<{ questionId: string; selectedAnswer: string; timeSpent: number }>) => {
+    if (!simulado) return
+    setIsSubmitting(true)
     try {
       await StudentService.updateSimulado(simulado.id, {
         answers: answers.map((answer) => ({
@@ -159,34 +144,33 @@ export default function SimuladoPage() {
           timeSpent: answer.timeSpent,
         })),
         completed: true,
-      });
+      })
       toast({
         title: "Simulado finalizado!",
         description: "Suas respostas foram salvas com sucesso",
-      });
-      await loadSimulado();
+      })
+      await loadSimulado()
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Erro ao salvar respostas",
-        description:
-          error instanceof Error ? error.message : "Tente novamente mais tarde",
-      });
+        description: error instanceof Error ? error.message : "Tente novamente mais tarde",
+      })
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
-  };
+  }
 
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary" />
       </div>
-    );
+    )
   }
 
   if (!simulado) {
-    return <SimuladoNotFound />;
+    return <SimuladoNotFound />
   }
 
   return (
@@ -263,5 +247,6 @@ export default function SimuladoPage() {
         )}
       </main>
     </div>
-  );
+  )
 }
+
