@@ -210,18 +210,20 @@ export default function SimuladoPage() {
               </div>
             </div>
           </div>
-          {!simulado.finalizado && (
-            <div className="text-sm text-muted-foreground">
-              Iniciado em{' '}
-              {new Date(simulado.dataInicio).toLocaleString('pt-BR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </div>
-          )}
+          <div className="text-sm text-muted-foreground">
+            {simulado.finalizado ? (
+              'Finalizado em '
+            ) : (
+              'Iniciado em '
+            )}
+            {new Date(simulado.dataInicio).toLocaleString('pt-BR', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
+          </div>
         </div>
 
         <Simulado
@@ -246,6 +248,7 @@ export default function SimuladoPage() {
           responses={simulado.respostas}
           simuladoId={simulado.id}
           onComplete={handleComplete}
+          isFinished={simulado.finalizado}
         />
 
         {isSubmitting && (

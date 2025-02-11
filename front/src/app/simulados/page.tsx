@@ -441,7 +441,12 @@ function SimuladoCard({
   })
 
   const handleClick = () => {
-    router.push(`/simulados/${id}`)
+    // If the simulado is finished, add a query parameter to show results
+    if (finalizado) {
+      router.push(`/simulados/${id}?showResults=true`)
+    } else {
+      router.push(`/simulados/${id}`)
+    }
   }
 
   // Calculate progress

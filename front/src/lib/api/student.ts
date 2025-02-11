@@ -93,7 +93,7 @@ export class StudentService {
   // List ENADE Exams
   static async listEnadeExams(year?: number, area?: AreaAvaliacao) {
     try {
-      const response = await this.api.get<ApiResponse<Questao[]>>('/student/exams', {
+      const response = await this.api.get<ApiResponse<Questao[]>>('/student/simulated-exams', {
         params: { year, knowledgeArea: area }
       })
 

@@ -319,28 +319,11 @@ export const getSimulatedExam = async (id, studentId) => {
 /**
  * Obtém estatísticas de desempenho do aluno
  */
-export const getStudentStatistics = async (studentId) => {
+export const getStudentStatistics = async (alunoId) => {
   try {
-    const user = await db.usuario.findUnique({
-      where: {
-        id: studentId
-      },
-      include: {
-        aluno: true
-      }
-    });
-
-    if (!user) {
-      throw new AppError('Usuário não encontrado', 404);
-    }
-
-    if (!user.aluno) {
-      throw new AppError('Usuário não está registrado como aluno', 404);
-    }
-
     const simulados = await db.simulado.findMany({
       where: {
-        alunoId: user.aluno.id,
+        alunoId: alunoId, // Using alunoId directly now
       },
       include: {
         questoes: true,
@@ -350,11 +333,11 @@ export const getStudentStatistics = async (studentId) => {
           }
         }
       }
-    })
+    });
 
-    const totalSimulados = simulados.length
-    const totalQuestoes = simulados.reduce((acc, s) => acc + s.questoes.length, 0)
-    const questoesCorretas = simulados.reduce((acc, s) => acc + s.respostas.length, 0)
+    const totalSimulados = simulados.length;
+    const totalQuestoes = simulados.reduce((acc, s) => acc + s.questoes.length, 0);
+    const questoesCorretas = simulados.reduce((acc, s) => acc + s.respostas.length, 0);
 
     // Agrupar por área
     const porArea = simulados.reduce((acc, simulado) => {
@@ -363,15 +346,15 @@ export const getStudentStatistics = async (studentId) => {
           acc[questao.area] = {
             total: 0,
             corretas: 0
-          }
+          };
         }
-        acc[questao.area].total++
+        acc[questao.area].total++;
         if (simulado.respostas.some(r => r.questaoId === questao.id)) {
-          acc[questao.area].corretas++
+          acc[questao.area].corretas++;
         }
-      })
-      return acc
-    }, {})
+      });
+      return acc;
+    }, {});
 
     return {
       totalSimulados,
@@ -387,12 +370,12 @@ export const getStudentStatistics = async (studentId) => {
           }
         ])
       )
-    }
+    };
   } catch (error) {
-    console.error('Error getting student statistics:', error)
-    throw new AppError('Erro ao buscar estatísticas', 500)
+    console.error('Error getting student statistics:', error);
+    throw new AppError('Erro ao buscar estatísticas', 500);
   }
-}
+};
 
 export const updateSimulatedExam = async (examId, updateData) => {
   try {
