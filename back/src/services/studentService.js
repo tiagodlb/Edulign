@@ -159,91 +159,179 @@ const openai = new OpenAI({
 });
 
 export const generateSimulatedExam = async (params) => {
-  const { area, numberOfQuestions, subjects } = params;
-
   try {
-    const questions = [];
+    const { area, numberOfQuestions, subjects } = params;
 
-    // Dividir as questões entre os assuntos selecionados
+    // Validações iniciais
+    if (!area || !numberOfQuestions || !subjects || !Array.isArray(subjects) || subjects.length === 0) {
+      throw new AppError('Parâmetros inválidos para geração do simulado', 400);
+    }
+
+    const questions = [];
     const questionsPerSubject = Math.ceil(numberOfQuestions / subjects.length);
 
     for (const subject of subjects) {
-      const subjectQuestions = await generateQuestionsForSubject(area, subject, questionsPerSubject);
-      questions.push(...subjectQuestions);
+      try {
+        const subjectQuestions = await generateQuestionsForSubject(area, subject, questionsPerSubject);
+
+        if (subjectQuestions && Array.isArray(subjectQuestions)) {
+          questions.push(...subjectQuestions);
+        }
+      } catch (error) {
+        console.error(`Erro ao gerar questões para o assunto ${subject}:`, error);
+      }
     }
 
-    return questions;
+    if (questions.length === 0) {
+      throw new AppError('Não foi possível gerar questões para o simulado', 500);
+    }
+
+    return questions.slice(0, numberOfQuestions);
   } catch (error) {
-    console.error('Erro ao gerar simulado:', error);
-    throw new AppError('Erro ao gerar simulado com IA', 500);
+    console.error('Erro detalhado na geração do simulado:', error);
+    throw new AppError(
+      'Erro ao gerar simulado com IA: ' + (error.message || 'Erro desconhecido'),
+      error.statusCode || 500
+    );
   }
 };
 
 const generateQuestionsForSubject = async (area, subject, count) => {
-  const prompt = createEnadePrompt(area, subject);
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `Você é um especialista em criar questões no padrão ENADE para a área de ${area}. 
+            Crie ${count} questões que avaliem as competências e habilidades definidas nas diretrizes do ENADE.
+            Cada questão DEVE ter exatamente 5 alternativas, sendo apenas uma correta.
+            Use o formato JSON especificado e garanta que as questões sigam o padrão ENADE.`
+        },
+        {
+          role: "user",
+          content: createEnadePrompt(area, subject, count)
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 3000,
+      response_format: { type: "json_object" }
+    });
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4",
-    messages: [
-      {
-        role: "system",
-        content: `Você é um especialista em criar questões no padrão ENADE para a área de ${area}. 
-        Gere questões que avaliem as competências e habilidades definidas nas diretrizes do ENADE.
-        Foque em questões que exijam pensamento crítico e aplicação prática do conhecimento.
-        Use o formato JSON especificado e garanta que as questões sigam o padrão ENADE.`
-      },
-      {
-        role: "user",
-        content: prompt
-      }
-    ],
-    temperature: 0.7,
-    max_tokens: 2000,
-    response_format: { type: "json_object" }
-  });
+    if (!completion.choices || !completion.choices[0]?.message?.content) {
+      throw new AppError('Resposta inválida da IA', 500);
+    }
 
-  const questionsData = JSON.parse(completion.choices[0].message.content);
-  return questionsData.questions;
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(completion.choices[0].message.content);
+    } catch (error) {
+      console.error('Erro no parsing JSON:', error);
+      console.error('Conteúdo recebido:', completion.choices[0].message.content);
+      throw new AppError('Erro ao processar resposta da IA', 500);
+    }
+
+    if (!parsedResponse.questions || !Array.isArray(parsedResponse.questions)) {
+      throw new AppError('Formato de resposta inválido da IA', 500);
+    }
+
+    // Validar e corrigir cada questão
+    const validQuestions = parsedResponse.questions.map(question => validateAndFixQuestion(question, area, subject));
+
+    return validQuestions;
+  } catch (error) {
+    console.error('Erro na geração de questões:', error);
+    throw error;
+  }
 };
 
-export const createEnadePrompt = (area, subject) => {
+const validateAndFixQuestion = (question, area, subject) => {
+  const defaultAlternative = {
+    texto: 'Nenhuma das alternativas anteriores',
+    correta: false,
+    justificativa: 'Alternativa padrão'
+  };
+
+  // Garantir que temos os campos obrigatórios
+  const validatedQuestion = {
+    enunciado: question.enunciado || 'Questão sem enunciado',
+    comando: question.comando || 'Analise a questão e escolha a alternativa correta:',
+    alternativas: [],
+    area: area,
+    tipo: 'ENADE_AI',
+    nivel: question.nivel || 'medio',
+    topicos: question.topicos || [subject],
+    competencias: question.competencias || ['Competência geral'],
+    referencias: question.referencias || ['Bibliografia padrão']
+  };
+
+  // Garantir exatamente 5 alternativas
+  if (Array.isArray(question.alternativas)) {
+    validatedQuestion.alternativas = question.alternativas
+      .slice(0, 5)
+      .map(alt => ({
+        texto: alt.texto || 'Alternativa sem texto',
+        correta: Boolean(alt.correta),
+        justificativa: alt.justificativa || 'Sem justificativa fornecida'
+      }));
+  }
+
+  // Completar até 5 alternativas se necessário
+  while (validatedQuestion.alternativas.length < 5) {
+    validatedQuestion.alternativas.push({
+      ...defaultAlternative,
+      texto: `Alternativa ${validatedQuestion.alternativas.length + 1}`,
+    });
+  }
+
+  // Garantir que exatamente uma alternativa está correta
+  const correctCount = validatedQuestion.alternativas.filter(alt => alt.correta).length;
+  if (correctCount !== 1) {
+    // Se não houver nenhuma ou houver múltiplas alternativas corretas,
+    // marca a primeira como correta e as demais como incorretas
+    validatedQuestion.alternativas = validatedQuestion.alternativas.map((alt, index) => ({
+      ...alt,
+      correta: index === 0
+    }));
+  }
+
+  return validatedQuestion;
+};
+
+const createEnadePrompt = (area, subject, count) => {
   return `
-  Gere ${count} questões no padrão ENADE para a área de ${area}, sobre o tema ${subject}.
+  Crie ${count} questões no padrão ENADE para a área de ${area}, sobre o tema ${subject}.
   
-  As questões devem seguir este formato JSON:
+  Requisitos obrigatórios:
+  1. CADA QUESTÃO DEVE TER EXATAMENTE 5 ALTERNATIVAS
+  2. APENAS UMA ALTERNATIVA DEVE SER CORRETA
+  3. Siga estritamente este formato JSON:
   {
     "questions": [
       {
-        "enunciado": "texto do enunciado com contextualização",
-        "suportes": [
-          {
-            "tipo": "texto/imagem/tabela/grafico",
-            "conteudo": "conteúdo do material de apoio"
-          }
-        ],
+        "enunciado": "texto detalhado do enunciado",
         "comando": "comando da questão",
         "alternativas": [
           {
             "texto": "texto da alternativa",
             "correta": true/false,
-            "justificativa": "explicação da alternativa"
+            "justificativa": "explicação desta alternativa"
           }
+          // ... total de 5 alternativas
         ],
-        "competencias": ["lista de competências avaliadas"],
         "nivel": "facil/medio/dificil",
         "topicos": ["tópicos abordados"],
+        "competencias": ["competências avaliadas"],
         "referencias": ["referências bibliográficas"]
       }
     ]
   }
 
-  Requisitos:
-  1. Siga estritamente o padrão de questões ENADE
-  2. Use contextualização relevante e atual
-  3. Inclua materiais de apoio quando apropriado
-  4. Avalie competências específicas da área
-  5. Garanta que as alternativas incorretas sejam plausíveis
-  6. Forneça justificativa para todas as alternativas
-  7. Use referências acadêmicas atualizadas
+  Diretrizes adicionais:
+  - Use contextualização relevante e atual
+  - Avalie competências específicas da área
+  - Alternativas incorretas devem ser plausíveis
+  - Inclua justificativa para cada alternativa
+  - Use referências acadêmicas atualizadas
   `;
 };

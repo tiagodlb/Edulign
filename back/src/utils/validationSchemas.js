@@ -232,3 +232,32 @@ export const simulatedExamUpdateSchema = Joi.object({
   ),
   completed: Joi.boolean().required()
 });
+
+export const aiSimulatedExamSchema = Joi.object({
+  area: Joi.string().required()
+    .messages({
+      'string.empty': 'A área é obrigatória',
+      'any.required': 'A área é obrigatória'
+    }),
+  subjects: Joi.array()
+    .items(Joi.string())
+    .min(1)
+    .max(5)
+    .required()
+    .messages({
+      'array.min': 'Selecione pelo menos 1 assunto',
+      'array.max': 'Selecione no máximo 5 assuntos',
+      'any.required': 'Os assuntos são obrigatórios'
+    }),
+  numberOfQuestions: Joi.number()
+    .integer()
+    .min(5)
+    .max(30)
+    .required()
+    .messages({
+      'number.base': 'O número de questões deve ser um número',
+      'number.min': 'O número mínimo de questões é 5',
+      'number.max': 'O número máximo de questões é 30',
+      'any.required': 'O número de questões é obrigatório'
+    })
+});

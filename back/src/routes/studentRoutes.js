@@ -2,7 +2,7 @@ import express from 'express';
 import * as studentController from '../controllers/studentController.js';
 import authMiddleware from '../middleware/authMiddleware.js';
 import validateRequest from '../middleware/joiValidationMiddleware.js';
-import { simulatedExamSchema, simulatedExamUpdateSchema, questionIdSchema } from '../utils/validationSchemas.js';
+import { simulatedExamSchema, simulatedExamUpdateSchema, questionIdSchema, aiSimulatedExamSchema } from '../utils/validationSchemas.js';
 
 const router = express.Router();
 
@@ -100,7 +100,7 @@ router.post(
   '/simulated-exams',
   authMiddleware,
   validateRequest(simulatedExamSchema),
-  studentController.createSimulatedExam
+  studentController.createAiSimulatedExam
 );
 
 router.get(
@@ -304,23 +304,8 @@ router.get('/export-data', authMiddleware, studentController.exportStudentData);
 router.post(
   '/simulated-exams/ai-enade',
   authMiddleware,
-  validateRequest(aiEnadeSimulatedExamSchema),
+  validateRequest(aiSimulatedExamSchema),
   studentController.createAiSimulatedExam
 );
-
-// utils/validationSchemas.js
-export const aiEnadeSimulatedExamSchema = Joi.object({
-  area: Joi.string().required(),
-  subjects: Joi.array()
-    .items(Joi.string())
-    .min(1)
-    .max(5)
-    .required(),
-  numberOfQuestions: Joi.number()
-    .integer()
-    .min(5)
-    .max(30)
-    .required()
-});
 
 export default router;
