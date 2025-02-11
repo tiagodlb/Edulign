@@ -2,78 +2,82 @@ import axios from 'axios'
 import { AuthService } from './auth'
 import { AreaAvaliacao } from '@/types'
 
+// Interfaces
+interface Alternativa {
+  id: string
+  texto: string
+  correta: boolean
+  justificativa: string
+  questaoId: string
+}
+
+interface Questao {
+  id: string
+  enunciado: string
+  comando: string
+  area: string
+  tipo: string
+  nivel: string
+  alternativas: Alternativa[]
+  suportes: Array<{
+    id: string
+    tipo: string
+    conteudo: string
+  }>
+  topicos: string[]
+  competencias: string[]
+  referencias: string[]
+  dataCriacao: string
+}
+
+interface Simulado {
+  id: string
+  titulo: string
+  tipo: 'NORMAL' | 'ENADE_AI'
+  area: string
+  tempoLimite: number
+  qtdQuestoes: number
+  dataInicio: string
+  dataFim: string | null
+  finalizado: boolean
+  questoes: Questao[]
+  respostas: Array<{
+    id: string
+    alunoId: string
+    questaoId: string
+    alternativaId: string
+    correta: boolean
+    dataResposta: string
+    tempoResposta: number
+    simuladoId: string
+  }>
+}
+
 interface CreateSimuladoParams {
   knowledgeArea: AreaAvaliacao
   numberOfQuestions: number
 }
 
-// API Response Interfaces
-interface SimuladoResponse {
-  success: boolean
-  message: string
-  data: {
-    simulado: {
-      id: number
-      titulo: string
-      area: AreaAvaliacao
-      duracao: string
-      questoes: number
-    }
-  }
+interface CreateAiSimuladoParams {
+  area: AreaAvaliacao
+  subjects: string[]
+  numberOfQuestions: number
 }
 
-interface SimuladosResponse {
-  success: boolean
-  message: string
-  data: {
-    simulados: Array<{
-      id: number
-      titulo: string
-      area: AreaAvaliacao
-      duracao: string
-      questoes: number
-    }>
-  }
-}
-
-interface ExamsResponse {
-  success: boolean
-  message: string
-  data: Array<{
-    id: number
-    enunciado: string
-    alternativas: string[]
-    area: AreaAvaliacao
-    ano: number
+interface SimuladoUpdateParams {
+  answers: Array<{
+    questionId: string
+    selectedAnswer: string
+    timeSpent: number
   }>
+  completed: boolean
 }
 
-interface QuestionsResponse {
+// API Response Types
+interface ApiResponse<T> {
   success: boolean
-  message: string
-  data: Array<{
-    id: number
-    enunciado: string
-    alternativas: string[]
-    area: AreaAvaliacao
-    ano: number
-  }>
-}
-
-interface StatisticsResponse {
-  success: boolean
-  message: string
-  data: {
-    totalSimulados: number
-    mediaGeral: number
-    porArea: {
-      [key in AreaAvaliacao]?: {
-        total: number
-        corretas: number
-        percentual: number
-      }
-    }
-  }
+  message?: string
+  data: T
 }
 
 class StudentError extends Error {
@@ -89,7 +93,7 @@ export class StudentService {
   // List ENADE Exams
   static async listEnadeExams(year?: number, area?: AreaAvaliacao) {
     try {
-      const response = await this.api.get<ExamsResponse>('/student/exams', {
+      const response = await this.api.get<ApiResponse<Questao[]>>('/student/exams', {
         params: { year, knowledgeArea: area }
       })
 
@@ -97,7 +101,7 @@ export class StudentService {
         throw new Error(response.data.message || 'Erro ao listar provas')
       }
 
-      return response.data.data
+      return response.data
     } catch (error) {
       this.handleError(error, 'Erro ao listar provas ENADE')
     }
@@ -106,7 +110,7 @@ export class StudentService {
   // Search Questions
   static async searchQuestions(query: string) {
     try {
-      const response = await this.api.post<QuestionsResponse>('/student/questions/search', {
+      const response = await this.api.post<ApiResponse<Questao[]>>('/student/questions/search', {
         query
       })
 
@@ -114,7 +118,7 @@ export class StudentService {
         throw new Error(response.data.message || 'Erro ao buscar questões')
       }
 
-      return response.data.data
+      return response.data
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 400) {
         throw new StudentError('Termo de busca não fornecido', 'INVALID_QUERY', 400)
@@ -123,20 +127,19 @@ export class StudentService {
     }
   }
 
-  // Create Simulated Exam
+  // Create Regular Simulated Exam
   static async createSimulado(params: CreateSimuladoParams) {
-    console.log(params)
     try {
-      const response = await this.api.post<SimuladoResponse>('/student/simulated-exams', {
-        knowledgeArea: params.knowledgeArea,
-        numberOfQuestions: params.numberOfQuestions
-      })
+      const response = await this.api.post<ApiResponse<Simulado>>(
+        '/student/simulated-exams',
+        params
+      )
 
       if (!response.data.success) {
         throw new Error(response.data.message || 'Erro ao criar simulado')
       }
 
-      return response.data.data.simulado
+      return response.data
     } catch (error) {
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 400) {
@@ -158,24 +161,32 @@ export class StudentService {
     }
   }
 
+  // Create AI ENADE Simulated Exam
+  static async createAiSimulado(params: CreateAiSimuladoParams) {
+    try {
+      const response = await this.api.post<ApiResponse<Simulado>>(
+        '/student/simulated-exams/ai-enade',
+        params
+      )
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Erro ao criar simulado ENADE')
+      }
+
+      return response.data
+    } catch (error) {
+      this.handleError(error, 'Erro ao criar simulado ENADE')
+    }
+  }
+
   // Get All Simulados
   static async getSimulados() {
     try {
-      const userJson = localStorage.getItem('auth_user')
-      if (!userJson) {
-        throw new Error('Usuário não autenticado')
-      }
-
-      const user = JSON.parse(userJson)
-      const userId = user.id
-
-      const response = await this.api.get<SimuladosResponse>(`/student/simulated-exams/${userId}`)
+      const response = await this.api.get<ApiResponse<Simulado[]>>('/student/simulated-exams')
 
       if (!response.data.success) {
         throw new Error(response.data.message || 'Erro ao buscar simulados')
       }
-
-      console.log(response.data)
 
       return response.data
     } catch (error) {
@@ -186,12 +197,12 @@ export class StudentService {
   // Get Specific Simulado
   static async getSimuladoById(id: string) {
     try {
-      const response = await this.api.get<SimuladoResponse>(`/student/simulated-exam/${id}`)
-      console.log(`/student/simulated-exam/${id}`)
+      const response = await this.api.get<ApiResponse<Simulado>>(`/student/simulated-exam/${id}`)
+      console.log('/student/simulated-exam/${id}')
       if (!response.data.success) {
         throw new Error(response.data.message || 'Erro ao buscar simulado')
       }
-      console.log(response.data)
+
       return response.data
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 404) {
@@ -201,18 +212,32 @@ export class StudentService {
     }
   }
 
-  // Get Question Explanation
-  static async getQuestionExplanation(id: number) {
+  // Update Simulado
+  static async updateSimulado(id: string, data: SimuladoUpdateParams) {
     try {
-      const response = await this.api.get<{ success: boolean; message: string; data: string }>(
-        `/student/questions/${id}/explanation`
-      )
+      const response = await this.api.put(`/student/simulated-exams/${id}`, data)
+      return response.data
+    } catch (error) {
+      this.handleError(error, 'Erro ao atualizar simulado')
+    }
+  }
+
+  // Get Question Explanation
+  static async getQuestionExplanation(id: string) {
+    try {
+      const response = await this.api.get<
+        ApiResponse<{
+          explanation: string
+          questionId: string
+          generatedAt: string
+        }>
+      >(`/student/questions/${id}/explanation`)
 
       if (!response.data.success) {
         throw new Error(response.data.message || 'Erro ao buscar explicação')
       }
 
-      return response.data.data
+      return response.data
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 404) {
         throw new StudentError('Explicação não encontrada', 'NOT_FOUND', 404)
@@ -224,13 +249,28 @@ export class StudentService {
   // Get Student Statistics
   static async getStatistics() {
     try {
-      const response = await this.api.get<StatisticsResponse>('/student/statistics')
+      const response = await this.api.get<
+        ApiResponse<{
+          totalSimulados: number
+          totalQuestoes: number
+          questoesCorretas: number
+          mediaGeral: number
+          porArea: Record<
+            string,
+            {
+              total: number
+              corretas: number
+              percentual: number
+            }
+          >
+        }>
+      >('/student/statistics')
 
       if (!response.data.success) {
         throw new Error(response.data.message || 'Erro ao buscar estatísticas')
       }
 
-      return response.data.data
+      return response.data
     } catch (error) {
       this.handleError(error, 'Erro ao buscar estatísticas')
     }

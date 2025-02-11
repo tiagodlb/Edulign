@@ -1,8 +1,7 @@
 'use client'
-
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { AlertCircle, ArrowLeft } from 'lucide-react'
+import { AlertCircle, ArrowLeft, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -12,31 +11,74 @@ import {
   CardContent,
   CardFooter
 } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { SiteHeader } from '@/components/layout/site-header'
 import { Simulado } from '@/components/simulado'
 import { useToast } from '@/hooks/use-toast'
 import StudentService from '@/lib/api/student'
 
-type SimuladoResponse = {
+// Types
+interface Alternativa {
   id: string
+  texto: string
+  correta: boolean
+  justificativa: string
+  questaoId: string
+}
+
+interface Suporte {
+  id: string
+  tipo: string
+  conteudo: string
+  questaoId: string
+}
+
+interface Questao {
+  id: string
+  enunciado: string
+  comando: string
+  area: string
+  tipo: string
+  nivel: string
+  alternativas: Alternativa[]
+  suportes: Suporte[]
+  topicos: string[]
+  competencias: string[]
+  referencias: string[]
+  dataCriacao: string
+  ano: number | null
+  cadastradoPorId: string | null
+}
+
+interface Resposta {
+  id: string
+  alunoId: string
+  questaoId: string
+  alternativaId: string
+  correta: boolean
+  dataResposta: string
+  tempoResposta: number
+  simuladoId: string
+  alternativa: Alternativa
+}
+
+interface SimuladoResponse {
+  id: string
+  titulo: string
+  tipo: 'NORMAL' | 'ENADE_AI'
+  area: string
+  tempoLimite: number
   alunoId: string
   qtdQuestoes: number
   dataInicio: string
   dataFim: string | null
   finalizado: boolean
-  questoes: Array<{
-    id: string
-    enunciado: string
-    alternativas: string[]
-    area: string
-    ano: number
-  }>
-  respostas: Array<any>
+  questoes: Questao[]
+  respostas: Resposta[]
 }
 
 function SimuladoNotFound() {
   const router = useRouter()
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <SiteHeader />
@@ -68,6 +110,7 @@ function SimuladoNotFound() {
 export default function SimuladoPage() {
   const [simulado, setSimulado] = useState<SimuladoResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const { id } = useParams()
   const router = useRouter()
   const { toast } = useToast()
@@ -82,7 +125,6 @@ export default function SimuladoPage() {
     try {
       const response = await StudentService.getSimuladoById(id as string)
       if (response.success) {
-        console.log(response.data)
         setSimulado(response.data)
       } else {
         throw new Error('Failed to load simulado')
@@ -96,6 +138,36 @@ export default function SimuladoPage() {
       router.push('/simulados')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleComplete = async (
+    answers: Array<{ questionId: string; selectedAnswer: string; timeSpent: number }>
+  ) => {
+    if (!simulado) return
+    setIsSubmitting(true)
+    try {
+      await StudentService.updateSimulado(simulado.id, {
+        answers: answers.map(answer => ({
+          questionId: answer.questionId,
+          selectedAnswer: answer.selectedAnswer,
+          timeSpent: answer.timeSpent
+        })),
+        completed: true
+      })
+      toast({
+        title: 'Simulado finalizado!',
+        description: 'Suas respostas foram salvas com sucesso'
+      })
+      await loadSimulado()
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao salvar respostas',
+        description: error instanceof Error ? error.message : 'Tente novamente mais tarde'
+      })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -115,19 +187,75 @@ export default function SimuladoPage() {
     <div className="min-h-screen bg-background flex flex-col">
       <SiteHeader />
       <main className="flex-grow container mx-auto px-4 py-8">
-        <h1 className="scroll-m-20 text-3xl font-extrabold tracking-tight lg:text-4xl mb-8">
-          Simulado
-        </h1>
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="scroll-m-20 text-3xl font-extrabold tracking-tight lg:text-4xl">
+                {simulado.titulo}
+              </h1>
+              {simulado.tipo === 'ENADE_AI' && (
+                <Badge variant="secondary" className="text-xs">
+                  IA
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground mt-2">
+              <span>{simulado.area}</span>
+              <span>•</span>
+              <span>{simulado.qtdQuestoes} questões</span>
+              <span>•</span>
+              <div className="flex items-center gap-1">
+                <Clock className="h-4 w-4" />
+                <span>{simulado.tempoLimite} minutos</span>
+              </div>
+            </div>
+          </div>
+          {!simulado.finalizado && (
+            <div className="text-sm text-muted-foreground">
+              Iniciado em{' '}
+              {new Date(simulado.dataInicio).toLocaleString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </div>
+          )}
+        </div>
+
         <Simulado
           questions={simulado.questoes.map(q => ({
             id: q.id,
             question: q.enunciado,
-            options: q.alternativas,
-            correctAnswer: '',
-            explanation: ''
+            command: q.comando,
+            options: q.alternativas.map(alt => ({
+              id: alt.id,
+              text: alt.texto,
+              isCorrect: alt.correta,
+              explanation: alt.justificativa
+            })),
+            area: q.area,
+            level: q.nivel,
+            topics: q.topicos,
+            competencies: q.competencias,
+            references: q.referencias,
+            supports: q.suportes
           }))}
-          timeLimit={240}
+          timeLimit={simulado.tempoLimite * 60}
+          responses={simulado.respostas}
+          simuladoId={simulado.id}
+          onComplete={handleComplete}
         />
+
+        {isSubmitting && (
+          <div className="fixed inset-0 bg-background/80 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-4">
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent" />
+              <p className="text-lg font-medium">Salvando respostas...</p>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   )

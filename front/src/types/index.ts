@@ -6,7 +6,7 @@ export enum StatusCiclo {
 
 export enum AreaAvaliacao {
   Arq_Urb = 'Arquitetura e Urbanismo',
-  Eng_Comp = 'Engenharia da Computação',
+  Eng_Comp = 'Engenharia da Computação'
 }
 
 export interface Simulado {
@@ -21,7 +21,7 @@ export interface Simulado {
 }
 
 export interface Question {
-  id: number
+  id: string
   question: string
   options: string[]
   correctAnswer: string

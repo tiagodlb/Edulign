@@ -194,6 +194,7 @@ export const updateSimulatedExam = asyncHandler(async (req, res) => {
   const { answers, completed } = req.body;
   const userId = req.user.id;
 
+  // Get aluno record
   const aluno = await db.aluno.findFirst({
     where: { usuarioId: userId }
   });
@@ -202,45 +203,60 @@ export const updateSimulatedExam = asyncHandler(async (req, res) => {
     throw new AppError('Usuário não está registrado como aluno', 404);
   }
 
+  // Verify simulado ownership
+  const simulado = await db.simulado.findFirst({
+    where: {
+      id,
+      alunoId: aluno.id
+    },
+    include: {
+      questoes: {
+        include: {
+          alternativas: true
+        }
+      }
+    }
+  });
+
+  if (!simulado) {
+    throw new AppError('Simulado não encontrado ou acesso não autorizado', 404);
+  }
+
   const updatedSimulado = await db.$transaction(async (prisma) => {
     // Process answers
     if (answers && Array.isArray(answers)) {
       await Promise.all(
         answers.map(async (answer) => {
-          const alternativa = await prisma.alternativa.findFirst({
-            where: {
-              id: answer.alternativaId,
-              questao: {
-                simulados: {
-                  some: { id }
-                }
-              }
-            }
-          });
+          // Find correct alternativa
+          const questao = simulado.questoes.find(q => q.id === answer.questionId);
+          if (!questao) {
+            throw new AppError(`Questão ${answer.questionId} não encontrada`, 400);
+          }
 
+          const alternativa = questao.alternativas.find(alt => alt.id === answer.selectedAnswer);
           if (!alternativa) {
-            throw new AppError('Alternativa inválida', 400);
+            throw new AppError(`Alternativa ${answer.selectedAnswer} não encontrada`, 400);
           }
 
           return prisma.resposta.upsert({
             where: {
               simuladoId_questaoId: {
                 simuladoId: id,
-                questaoId: answer.questaoId
+                questaoId: answer.questionId
               }
             },
             create: {
               alunoId: aluno.id,
-              questaoId: answer.questaoId,
-              alternativaId: answer.alternativaId,
+              questaoId: answer.questionId,
+              alternativaId: answer.selectedAnswer,
               simuladoId: id,
               correta: alternativa.correta,
-              tempoResposta: answer.tempoResposta || 0
+              tempoResposta: Math.round(answer.timeSpent)
             },
             update: {
-              alternativaId: answer.alternativaId,
+              alternativaId: answer.selectedAnswer,
               correta: alternativa.correta,
-              tempoResposta: answer.tempoResposta || 0
+              tempoResposta: Math.round(answer.timeSpent)
             }
           });
         })
@@ -263,8 +279,7 @@ export const updateSimulatedExam = asyncHandler(async (req, res) => {
       include: {
         questoes: {
           include: {
-            alternativas: true,
-            suportes: true
+            alternativas: true
           }
         },
         respostas: {
@@ -275,10 +290,6 @@ export const updateSimulatedExam = asyncHandler(async (req, res) => {
       }
     });
   });
-
-  if (!updatedSimulado) {
-    throw new AppError('Simulado não encontrado', 404);
-  }
 
   res.status(200).json({
     success: true,

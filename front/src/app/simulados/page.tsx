@@ -1,4 +1,3 @@
- /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -25,27 +24,52 @@ import {
   DialogTrigger
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AreaAvaliacao } from '@/types'
 import { SiteHeader } from '@/components/layout/site-header'
 import { useToast } from '@/hooks/use-toast'
 import StudentService from '@/lib/api/student'
 import { getSimuladoStatus } from '@/utils/simulado'
 
-type Simulado = {
+interface Alternativa {
+  id: string
+  texto: string
+  correta: boolean
+  justificativa: string
+  questaoId: string
+}
+
+interface Questao {
+  id: string
+  enunciado: string
+  comando: string
+  alternativas: Alternativa[]
+  area: string
+  tipo: string
+  nivel: string
+  topicos: string[]
+  competencias: string[]
+  referencias: string[]
+  dataCriacao: string
+}
+
+interface Simulado {
   id: string
   titulo: string
+  tipo: 'NORMAL' | 'ENADE_AI'
   area: string
+  tempoLimite: number
   qtdQuestoes: number
-  finalizado: boolean
   dataInicio: string
   dataFim: string | null
+  finalizado: boolean
+  questoes: Questao[]
   respostas: Array<{
     id: string
     alunoId: string
     questaoId: string
-    alternativaSelecionada: number
+    alternativaId: string
     correta: boolean
-    explicacao: string
     dataResposta: string
     tempoResposta: number
     simuladoId: string
@@ -58,10 +82,19 @@ export default function SimuladosPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedArea, setSelectedArea] = useState<AreaAvaliacao | 'all'>('all')
   const [isCreating, setIsCreating] = useState(false)
+  const [activeTab, setActiveTab] = useState('normal')
   const [formData, setFormData] = useState({
-    area: '',
-    questoes: ''
+    normal: {
+      area: '',
+      questoes: ''
+    },
+    enade: {
+      area: '',
+      subjects: [''],
+      numberOfQuestions: ''
+    }
   })
+
   const { toast } = useToast()
 
   useEffect(() => {
@@ -71,8 +104,8 @@ export default function SimuladosPage() {
   const loadSimulados = async () => {
     try {
       const response = await StudentService.getSimulados()
-      if ((response as any).success) {
-        setSimulados((response as any).data)
+      if (response.success) {
+        setSimulados(response.data)
       } else {
         throw new Error('Falha ao carregar os simulados')
       }
@@ -88,37 +121,80 @@ export default function SimuladosPage() {
   }
 
   const handleCreateSimulado = async () => {
-    if (!formData.area || !formData.questoes) {
-      toast({
-        variant: 'destructive',
-        title: 'Campos obrigatórios',
-        description: 'Preencha todos os campos para criar o simulado'
-      })
-      return
-    }
+    if (activeTab === 'normal') {
+      if (!formData.normal.area || !formData.normal.questoes) {
+        toast({
+          variant: 'destructive',
+          title: 'Campos obrigatórios',
+          description: 'Preencha todos os campos para criar o simulado'
+        })
+        return
+      }
 
-    setIsCreating(true)
-    try {
-      await StudentService.createSimulado({
-        knowledgeArea: formData.area as AreaAvaliacao,
-        numberOfQuestions: Number.parseInt(formData.questoes)
-      })
+      setIsCreating(true)
+      try {
+        await StudentService.createSimulado({
+          knowledgeArea: formData.normal.area as AreaAvaliacao,
+          numberOfQuestions: Number.parseInt(formData.normal.questoes)
+        })
 
-      toast({
-        title: 'Simulado criado!',
-        description: 'Seu simulado foi criado com sucesso'
-      })
+        toast({
+          title: 'Simulado criado!',
+          description: 'Seu simulado foi criado com sucesso'
+        })
 
-      await loadSimulados()
-      setFormData({ area: '', questoes: '' })
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao criar simulado',
-        description: error instanceof Error ? error.message : 'Tente novamente mais tarde'
-      })
-    } finally {
-      setIsCreating(false)
+        await loadSimulados()
+        setFormData(prev => ({ ...prev, normal: { area: '', questoes: '' } }))
+      } catch (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Erro ao criar simulado',
+          description: error instanceof Error ? error.message : 'Tente novamente mais tarde'
+        })
+      } finally {
+        setIsCreating(false)
+      }
+    } else {
+      if (
+        !formData.enade.area ||
+        !formData.enade.subjects[0] ||
+        !formData.enade.numberOfQuestions
+      ) {
+        toast({
+          variant: 'destructive',
+          title: 'Campos obrigatórios',
+          description: 'Preencha todos os campos para criar o simulado ENADE'
+        })
+        return
+      }
+
+      setIsCreating(true)
+      try {
+        await StudentService.createAiSimulado({
+          area: formData.enade.area as AreaAvaliacao,
+          subjects: formData.enade.subjects,
+          numberOfQuestions: Number.parseInt(formData.enade.numberOfQuestions)
+        })
+
+        toast({
+          title: 'Simulado ENADE criado!',
+          description: 'Seu simulado ENADE foi criado com sucesso'
+        })
+
+        await loadSimulados()
+        setFormData(prev => ({
+          ...prev,
+          enade: { area: '', subjects: [''], numberOfQuestions: '' }
+        }))
+      } catch (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Erro ao criar simulado ENADE',
+          description: error instanceof Error ? error.message : 'Tente novamente mais tarde'
+        })
+      } finally {
+        setIsCreating(false)
+      }
     }
   }
 
@@ -156,43 +232,130 @@ export default function SimuladosPage() {
                     Configure as opções do seu novo simulado aqui.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="area" className="text-right">
-                      Área
-                    </Label>
-                    <Select
-                      value={formData.area}
-                      onValueChange={value => setFormData(prev => ({ ...prev, area: value }))}
-                    >
-                      <SelectTrigger id="area" className="col-span-3">
-                        <SelectValue placeholder="Selecione a área" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.values(AreaAvaliacao).map(area => (
-                          <SelectItem key={area} value={area}>
-                            {area}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="questoes" className="text-right">
-                      Questões
-                    </Label>
-                    <Input
-                      id="questoes"
-                      type="number"
-                      className="col-span-3"
-                      placeholder="Número de questões"
-                      value={formData.questoes}
-                      onChange={e => setFormData(prev => ({ ...prev, questoes: e.target.value }))}
-                      min="1"
-                      max="50"
-                    />
-                  </div>
-                </div>
+                <Tabs value={activeTab} onValueChange={setActiveTab}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="normal">Normal</TabsTrigger>
+                    <TabsTrigger value="enade">ENADE (IA)</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="normal">
+                    <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="area" className="text-right">
+                          Área
+                        </Label>
+                        <Select
+                          value={formData.normal.area}
+                          onValueChange={value =>
+                            setFormData(prev => ({
+                              ...prev,
+                              normal: { ...prev.normal, area: value }
+                            }))
+                          }
+                        >
+                          <SelectTrigger id="area" className="col-span-3">
+                            <SelectValue placeholder="Selecione a área" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.values(AreaAvaliacao).map(area => (
+                              <SelectItem key={area} value={area}>
+                                {area}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="questoes" className="text-right">
+                          Questões
+                        </Label>
+                        <Input
+                          id="questoes"
+                          type="number"
+                          className="col-span-3"
+                          placeholder="Número de questões"
+                          value={formData.normal.questoes}
+                          onChange={e =>
+                            setFormData(prev => ({
+                              ...prev,
+                              normal: { ...prev.normal, questoes: e.target.value }
+                            }))
+                          }
+                          min="1"
+                          max="50"
+                        />
+                      </div>
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="enade">
+                    <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="enade-area" className="text-right">
+                          Área
+                        </Label>
+                        <Select
+                          value={formData.enade.area}
+                          onValueChange={value =>
+                            setFormData(prev => ({
+                              ...prev,
+                              enade: { ...prev.enade, area: value }
+                            }))
+                          }
+                        >
+                          <SelectTrigger id="enade-area" className="col-span-3">
+                            <SelectValue placeholder="Selecione a área" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.values(AreaAvaliacao).map(area => (
+                              <SelectItem key={area} value={area}>
+                                {area}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="subjects" className="text-right">
+                          Assuntos
+                        </Label>
+                        <Input
+                          id="subjects"
+                          className="col-span-3"
+                          placeholder="Ex: Algoritmos, Estruturas de Dados"
+                          value={formData.enade.subjects.join(', ')}
+                          onChange={e =>
+                            setFormData(prev => ({
+                              ...prev,
+                              enade: {
+                                ...prev.enade,
+                                subjects: e.target.value.split(',').map(s => s.trim())
+                              }
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="enade-questoes" className="text-right">
+                          Questões
+                        </Label>
+                        <Input
+                          id="enade-questoes"
+                          type="number"
+                          className="col-span-3"
+                          placeholder="Número de questões"
+                          value={formData.enade.numberOfQuestions}
+                          onChange={e =>
+                            setFormData(prev => ({
+                              ...prev,
+                              enade: { ...prev.enade, numberOfQuestions: e.target.value }
+                            }))
+                          }
+                          min="5"
+                          max="30"
+                        />
+                      </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
                 <DialogFooter>
                   <Button onClick={handleCreateSimulado} disabled={isCreating}>
                     {isCreating ? (
@@ -261,7 +424,9 @@ export default function SimuladosPage() {
 function SimuladoCard({
   id,
   titulo,
+  tipo,
   area,
+  tempoLimite,
   qtdQuestoes,
   finalizado,
   dataInicio,
@@ -279,36 +444,75 @@ function SimuladoCard({
     router.push(`/simulados/${id}`)
   }
 
+  // Calculate progress
+  const progress = (respostas.length / qtdQuestoes) * 100
+  const correctAnswers = respostas.filter(r => r.correta).length
+
   return (
     <Card className="flex flex-col h-full">
       <CardContent className="flex-grow pt-6 space-y-4">
-        <div className="flex justify-between items-start">
-          <div>
-            <h3 className="text-xl font-semibold">{titulo}</h3>
-            <p className="text-muted-foreground">{area}</p>
+        <div className="space-y-1.5">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="text-xl font-semibold leading-none">{titulo}</h3>
+            <div className="flex items-center gap-2 shrink-0">
+              {tipo === 'ENADE_AI' && (
+                <Badge variant="secondary" className="px-2 py-0.5 text-xs font-medium">
+                  IA
+                </Badge>
+              )}
+              <StatusBadge status={status} />
+            </div>
           </div>
-          <StatusBadge status={status} />
+          <p className="text-sm text-muted-foreground">{area}</p>
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center text-muted-foreground">
-            <Clock className="w-5 h-5 mr-2" />
-            <span>{new Date(dataInicio).toLocaleString()}</span>
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Clock className="w-4 h-4 mr-2 shrink-0" />
+            <span>
+              {new Date(dataInicio).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </span>
           </div>
-          <div className="flex items-center text-muted-foreground">
-            <BookOpen className="w-5 h-5 mr-2" />
-            <span>{qtdQuestoes} questões</span>
+          <div className="flex items-center text-sm text-muted-foreground">
+            <BookOpen className="w-4 h-4 mr-2 shrink-0" />
+            <span>
+              {qtdQuestoes} questões • {tempoLimite} min
+            </span>
           </div>
-          <div className="flex items-center text-muted-foreground">
-            <span>{respostas.length} respostas</span>
-          </div>
+          {respostas.length > 0 && (
+            <div className="space-y-1.5 pt-2">
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Progresso</span>
+                <span>
+                  {respostas.length}/{qtdQuestoes} ({Math.round(progress)}%)
+                </span>
+              </div>
+              <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              {finalizado && (
+                <div className="text-sm text-muted-foreground">
+                  Acertos: {correctAnswers} de {qtdQuestoes} (
+                  {Math.round((correctAnswers / qtdQuestoes) * 100)}%)
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </CardContent>
       <CardFooter className="pt-4">
         <Button
           className="w-full"
           variant={status === 'Finalizado' ? 'secondary' : 'default'}
-          disabled={status === 'Finalizado'}
           onClick={handleClick}
         >
           {status === 'EmPreparacao'
@@ -324,14 +528,20 @@ function SimuladoCard({
 
 function StatusBadge({ status }: { status: 'EmPreparacao' | 'EmAndamento' | 'Finalizado' }) {
   const variants: Record<typeof status, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    EmPreparacao: 'destructive',
+    EmPreparacao: 'default',
     EmAndamento: 'default',
     Finalizado: 'secondary'
   }
 
+  const labels: Record<typeof status, string> = {
+    EmPreparacao: 'Não iniciado',
+    EmAndamento: 'Em andamento',
+    Finalizado: 'Finalizado'
+  }
+
   return (
     <Badge variant={variants[status]} className="mt-1">
-      {status}
+      {labels[status]}
     </Badge>
   )
 }
