@@ -10,6 +10,7 @@ export const AUTH_MESSAGES = {
   WELCOME_SUBTITLE: "Por favor, entre os dados da sua conta",
   REGISTER_TITLE: "Crie sua conta no Edulign",
   REGISTER_SUBTITLE: "Preencha os dados para criar sua conta",
+  FORGOT_PASSWORD_BUTTON: "Enviar email"
 } as const;
 
 export const AUTH_COOKIE_CONFIG = {

@@ -56,7 +56,7 @@ export function RegisterForm() {
         description: 'Bem-vindo(a) ao Eduling!'
       })
 
-      router.push('/dashboard')
+      router.push('/')
     } catch (error) {
       if (error instanceof Error) {
         toast({
