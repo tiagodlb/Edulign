@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { AUTH_COOKIE_CONFIG } from '@/lib/constants/auth';
 
 interface AuthState {
   isAuthenticated: boolean;

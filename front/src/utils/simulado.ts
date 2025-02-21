@@ -1,9 +1,15 @@
-import { Simulado } from '@/types'
-
-export function getSimuladoStatus(
-  simulado: Simulado
-): 'EmPreparacao' | 'EmAndamento' | 'Finalizado' {
-  if (simulado.finalizado) return 'Finalizado'
-  if (simulado.dataInicio && !simulado.dataFim) return 'EmAndamento'
-  return 'EmPreparacao'
+// utils/simulado.ts
+export function getSimuladoStatus({
+  finalizado,
+  dataInicio,
+  dataFim
+}: {
+  finalizado: boolean
+  dataInicio: string
+  dataFim: string | null
+}): 'EmPreparacao' | 'EmAndamento' | 'Finalizado' {
+  console.log(dataFim)
+  if (finalizado) return 'Finalizado'
+  if (new Date(dataInicio) > new Date()) return 'EmPreparacao'
+  return 'EmAndamento'
 }

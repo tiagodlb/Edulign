@@ -190,7 +190,7 @@ export const createQuestion = async (questionData) => {
         }
     }
 
-    if (!Array.isArray(questionData.alternativas) || questionData.alternativas.length < 2) {
+    if (!Array.isArray(questionData.alternativas) || questionData.alternativas.length < 1) {
         throw new AppError(
             'A questão deve ter pelo menos duas alternativas',
             400,

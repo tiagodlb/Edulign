@@ -196,6 +196,14 @@ export const getAllSimulatedExamsById = async (studentId) => {
       }
     });
 
+    if (!user) {
+      throw new AppError('Usuário não encontrado', 404);
+    }
+
+    if (!user.aluno) {
+      throw new AppError('Usuário não está registrado como aluno', 404);
+    }
+
     const simulados = await db.simulado.findMany({
       where: {
         aluno: {
@@ -251,6 +259,7 @@ export const getAllSimulatedExamsById = async (studentId) => {
  */
 export const getSimulatedExam = async (id, studentId) => {
   try {
+    // First check if the simulado exists and belongs to the student
     const simulado = await db.simulado.findFirst({
       where: {
         id,
@@ -264,11 +273,22 @@ export const getSimulatedExam = async (id, studentId) => {
             id: true,
             enunciado: true,
             alternativas: true,
+            respostaCorreta: true,
             area: true,
-            ano: true
+            ano: true,
           }
         },
-        respostas: true
+        respostas: {
+          select: {
+            id: true,
+            alternativaSelecionada: true,
+            correta: true,
+            questaoId: true,
+            explicacao: true,
+            dataResposta: true,
+            tempoResposta: true
+          }
+        }
       }
     })
 
@@ -276,7 +296,19 @@ export const getSimulatedExam = async (id, studentId) => {
       throw new AppError('Simulado não encontrado', 404)
     }
 
-    return simulado
+    // Log the raw data to see what we're getting
+    console.log('Raw simulado data:', JSON.stringify(simulado, null, 2))
+
+    // Ensure alternativas is always an array
+    const processedSimulado = {
+      ...simulado,
+      questoes: simulado.questoes.map(questao => ({
+        ...questao,
+        alternativas: Array.isArray(questao.alternativas) ? questao.alternativas : []
+      }))
+    }
+
+    return processedSimulado
   } catch (error) {
     if (error instanceof AppError) throw error
     console.error('Error getting simulated exam:', error)
@@ -287,11 +319,11 @@ export const getSimulatedExam = async (id, studentId) => {
 /**
  * Obtém estatísticas de desempenho do aluno
  */
-export const getStudentStatistics = async (studentId) => {
+export const getStudentStatistics = async (alunoId) => {
   try {
     const simulados = await db.simulado.findMany({
       where: {
-        alunoId: studentId,
+        alunoId: alunoId, // Using alunoId directly now
       },
       include: {
         questoes: true,
@@ -301,11 +333,11 @@ export const getStudentStatistics = async (studentId) => {
           }
         }
       }
-    })
+    });
 
-    const totalSimulados = simulados.length
-    const totalQuestoes = simulados.reduce((acc, s) => acc + s.questoes.length, 0)
-    const questoesCorretas = simulados.reduce((acc, s) => acc + s.respostas.length, 0)
+    const totalSimulados = simulados.length;
+    const totalQuestoes = simulados.reduce((acc, s) => acc + s.questoes.length, 0);
+    const questoesCorretas = simulados.reduce((acc, s) => acc + s.respostas.length, 0);
 
     // Agrupar por área
     const porArea = simulados.reduce((acc, simulado) => {
@@ -314,15 +346,15 @@ export const getStudentStatistics = async (studentId) => {
           acc[questao.area] = {
             total: 0,
             corretas: 0
-          }
+          };
         }
-        acc[questao.area].total++
+        acc[questao.area].total++;
         if (simulado.respostas.some(r => r.questaoId === questao.id)) {
-          acc[questao.area].corretas++
+          acc[questao.area].corretas++;
         }
-      })
-      return acc
-    }, {})
+      });
+      return acc;
+    }, {});
 
     return {
       totalSimulados,
@@ -338,12 +370,104 @@ export const getStudentStatistics = async (studentId) => {
           }
         ])
       )
-    }
+    };
   } catch (error) {
-    console.error('Error getting student statistics:', error)
-    throw new AppError('Erro ao buscar estatísticas', 500)
+    console.error('Error getting student statistics:', error);
+    throw new AppError('Erro ao buscar estatísticas', 500);
   }
-}
+};
+
+export const updateSimulatedExam = async (examId, updateData) => {
+  try {
+    const { answers, completed, dataFim } = updateData;
+
+    // Start a transaction to ensure data consistency
+    const result = await db.$transaction(async (prisma) => {
+      // Update the simulado
+      const updatedSimulado = await prisma.simulado.update({
+        where: { id: examId },
+        data: {
+          finalizado: completed,
+          dataFim
+        }
+      });
+
+      // If there are answers, create or update them
+      if (answers && answers.length > 0) {
+        for (const answer of answers) {
+          await prisma.resposta.upsert({
+            where: {
+              simuladoId_questaoId: {
+                simuladoId: examId,
+                questaoId: answer.questionId
+              }
+            },
+            create: {
+              simuladoId: examId,
+              questaoId: answer.questionId,
+              alternativaSelecionada: answer.selectedAnswer,
+              tempoResposta: answer.timeSpent,
+              dataResposta: new Date()
+            },
+            update: {
+              alternativaSelecionada: answer.selectedAnswer,
+              tempoResposta: answer.timeSpent,
+              dataResposta: new Date()
+            }
+          });
+        }
+      }
+
+      return updatedSimulado;
+    });
+
+    return result;
+  } catch (error) {
+    if (error.code === 'P2025') {
+      throw new AppError('Simulado não encontrado', 404);
+    }
+    throw new AppError('Erro ao atualizar simulado', 500);
+  }
+};
+
+export const getQuestionById = async (questionId) => {
+  try {
+    const question = await db.questao.findUnique({
+      where: { id: questionId },
+      include: {
+        explanation: true
+      }
+    });
+
+    return question;
+  } catch (error) {
+    throw new AppError('Erro ao buscar questão', 500);
+  }
+};
+
+export const updateQuestionExplanation = async (questionId, content, generatedAt) => {
+  try {
+    const explanation = await db.explicacao.upsert({
+      where: {
+        questaoId: questionId
+      },
+      update: {
+        content,
+        generatedAt
+      },
+      create: {
+        questaoId: questionId,
+        content,
+        generatedAt
+      }
+    });
+
+    return explanation;
+  } catch (error) {
+    throw new AppError('Erro ao atualizar explicação', 500);
+  }
+};
+
 
 export default {
   findExams,
@@ -351,5 +475,7 @@ export default {
   getRandomQuestions,
   createSimulatedExam,
   getSimulatedExam,
-  getStudentStatistics
+  getStudentStatistics,
+  updateSimulatedExam,
+  updateQuestionExplanation
 }

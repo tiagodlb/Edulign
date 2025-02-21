@@ -1,6 +1,7 @@
 'use client'
+
 import { useState, useEffect } from 'react'
-import { Search, Filter, Plus } from 'lucide-react'
+import { Search, Filter, Plus, Loader2, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -27,35 +28,196 @@ import {
 } from '@/components/ui/select'
 import { SiteHeader } from '@/components/layout/site-header'
 import { AreaAvaliacao, TipoQuestao } from '@/types'
+import StudentService from '@/lib/api/student'
+import { toast } from '@/hooks/use-toast'
+import { Badge } from '@/components/ui/badge'
+import jsPDF from 'jspdf'
+import 'jspdf-autotable'
 
 interface Questao {
-  id: number
+  id: string
   enunciado: string
-  area: AreaAvaliacao
-  tipo: TipoQuestao
-  dataCriacao: Date
+  comando: string
+  area: string
+  tipo: string
+  nivel: string
+  topicos: string[]
+  competencias: string[]
+  referencias: string[]
+  dataCriacao: string
+  alternativas: Array<{
+    id: string
+    texto: string
+    correta: boolean
+    justificativa: string
+  }>
+  suportes: Array<{
+    id: string
+    tipo: string
+    conteudo: string
+  }>
 }
 
 export default function QuestoesPage() {
-  // State management
+  const [questions, setQuestions] = useState<Questao[]>([])
+  const [filteredQuestions, setFilteredQuestions] = useState<Questao[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [filterArea, setFilterArea] = useState<AreaAvaliacao | 'all'>('all')
   const [filterTipo, setFilterTipo] = useState<TipoQuestao | 'all'>('all')
-  const [filteredQuestoes, setFilteredQuestoes] = useState<Questao[]>(questoesMock)
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Filter logic
+  const generatePDF = (questao: Questao) => {
+    try {
+      const doc = new jsPDF()
+      
+      // Set font to handle special characters
+      doc.setFont('helvetica')
+      
+      // Add title
+      doc.setFontSize(16)
+      doc.text('Detalhes da Questão', 20, 20)
+      
+      // Add metadata
+      doc.setFontSize(12)
+      doc.text(`Área: ${questao.area}`, 20, 35)
+      doc.text(`Tipo: ${questao.tipo}`, 20, 45)
+      doc.text(`Nível: ${questao.nivel}`, 20, 55)
+      
+      // Add question text
+      doc.setFontSize(14)
+      doc.text('Enunciado:', 20, 70)
+      
+      // Split long text into multiple lines
+      const splitEnunciado = doc.splitTextToSize(questao.enunciado, 170)
+      doc.setFontSize(12)
+      doc.text(splitEnunciado, 20, 80)
+      
+      // Add command if exists
+      let currentY = 80 + (splitEnunciado.length * 7)
+      if (questao.comando) {
+        doc.setFontSize(14)
+        doc.text('Comando:', 20, currentY)
+        const splitComando = doc.splitTextToSize(questao.comando, 170)
+        doc.setFontSize(12)
+        doc.text(splitComando, 20, currentY + 10)
+        currentY += 10 + (splitComando.length * 7)
+      }
+      
+      // Add alternatives
+      doc.setFontSize(14)
+      doc.text('Alternativas:', 20, currentY + 10)
+      currentY += 20
+      
+      questao.alternativas.forEach((alt, index) => {
+        const isCorrect = alt.correta ? '✓' : ''
+        doc.setFontSize(12)
+        const altText = doc.splitTextToSize(`${String.fromCharCode(65 + index)}) ${alt.texto}`, 160)
+        doc.text(`${isCorrect} `, 20, currentY)
+        doc.text(altText, 30, currentY)
+        currentY += altText.length * 7 + 5
+        
+        // Add justification
+        if (alt.justificativa) {
+          doc.setFont('helvetica', 'italic')
+          const justText = doc.splitTextToSize(`Justificativa: ${alt.justificativa}`, 150)
+          doc.text(justText, 35, currentY)
+          currentY += justText.length * 7 + 5
+          doc.setFont('helvetica', 'normal')
+        }
+      })
+      
+      // Add topics, competencies and references if they exist
+      if (questao.topicos.length > 0) {
+        currentY += 10
+        doc.setFontSize(14)
+        doc.text('Tópicos:', 20, currentY)
+        doc.setFontSize(12)
+        questao.topicos.forEach(topico => {
+          currentY += 7
+          doc.text(`• ${topico}`, 25, currentY)
+        })
+      }
+
+      if (questao.competencias.length > 0) {
+        currentY += 10
+        doc.setFontSize(14)
+        doc.text('Competências:', 20, currentY)
+        doc.setFontSize(12)
+        questao.competencias.forEach(comp => {
+          currentY += 7
+          doc.text(`• ${comp}`, 25, currentY)
+        })
+      }
+
+      if (questao.referencias.length > 0) {
+        currentY += 10
+        doc.setFontSize(14)
+        doc.text('Referências:', 20, currentY)
+        doc.setFontSize(12)
+        questao.referencias.forEach(ref => {
+          currentY += 7
+          doc.text(`• ${ref}`, 25, currentY)
+        })
+      }
+
+      // Save the PDF
+      doc.save(`questao-${questao.id}.pdf`)
+      
+      toast({
+        title: 'PDF gerado com sucesso',
+        description: 'O arquivo foi baixado para o seu computador.'
+      })
+    } catch (error) {
+      console.error('Error generating PDF:', error)
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao gerar PDF',
+        description: 'Não foi possível gerar o arquivo PDF.'
+      })
+    }
+  }
+
+  // Load questions from simulados
   useEffect(() => {
-    const filtered = questoesMock.filter(questao => {
+    loadQuestions()
+  }, [])
+
+  const loadQuestions = async () => {
+    setIsLoading(true)
+    try {
+      const response = await StudentService.getSimulados()
+      if (response?.success) {
+        // Extract unique questions from all simulados
+        const allQuestions = response.data.flatMap(simulado => simulado.questoes)
+        // Remove duplicates based on question ID
+        const uniqueQuestions = Array.from(
+          new Map(allQuestions.map(q => [q.id, q])).values()
+        )
+        setQuestions(uniqueQuestions)
+        setFilteredQuestions(uniqueQuestions)
+      }
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao carregar questões',
+        description: 'Não foi possível carregar o banco de questões.'
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Search and filter logic
+  useEffect(() => {
+    const filtered = questions.filter(questao => {
       const matchesSearch = questao.enunciado.toLowerCase().includes(searchQuery.toLowerCase())
       const matchesArea = filterArea === 'all' || questao.area === filterArea
       const matchesTipo = filterTipo === 'all' || questao.tipo === filterTipo
-
       return matchesSearch && matchesArea && matchesTipo
     })
-
-    setFilteredQuestoes(filtered)
-  }, [searchQuery, filterArea, filterTipo])
+    setFilteredQuestions(filtered)
+  }, [questions, searchQuery, filterArea, filterTipo])
 
   // Filter dialog component
   const FilterDialog = () => (
@@ -114,18 +276,29 @@ export default function QuestoesPage() {
     </Dialog>
   )
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <SiteHeader />
+        <main className="flex-grow flex items-center justify-center">
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <span>Carregando questões...</span>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
   return (
-    <div>
+    <div className="min-h-screen bg-background flex flex-col">
       <SiteHeader />
       <main className="flex-grow container mx-auto px-8 py-12 sm:py-8">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Banco de Questões</h1>
-          <Button>
-            <Plus className="w-5 h-5 mr-2" />
-            Nova Questão
-          </Button>
         </div>
-        <div className="flex space-x-4">
+
+        <div className="flex space-x-4 mb-6">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -137,34 +310,57 @@ export default function QuestoesPage() {
           </div>
           <FilterDialog />
         </div>
+
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Enunciado</TableHead>
+                <TableHead className="w-[50%]">Enunciado</TableHead>
                 <TableHead>Área</TableHead>
                 <TableHead>Tipo</TableHead>
+                <TableHead>Nível</TableHead>
                 <TableHead>Data Criação</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredQuestoes.map(questao => (
-                <TableRow key={questao.id}>
-                  <TableCell>{questao.id}</TableCell>
-                  <TableCell className="max-w-md">
-                    {questao.enunciado.length > 100
-                      ? `${questao.enunciado.substring(0, 100)}...`
-                      : questao.enunciado}
-                  </TableCell>
-                  <TableCell>{questao.area}</TableCell>
-                  <TableCell>{questao.tipo}</TableCell>
-                  <TableCell>{questao.dataCriacao.toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <Button variant="link">Editar</Button>
+              {filteredQuestions.length > 0 ? (
+                filteredQuestions.map(questao => (
+                  <TableRow key={questao.id}>
+                    <TableCell className="font-medium">
+                      {questao.enunciado.length > 100
+                        ? `${questao.enunciado.substring(0, 100)}...`
+                        : questao.enunciado}
+                    </TableCell>
+                    <TableCell>{questao.area}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{questao.tipo}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{questao.nivel}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(questao.dataCriacao).toLocaleDateString('pt-BR')}
+                    </TableCell>
+                    <TableCell>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => generatePDF(questao)}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Baixar PDF
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-4">
+                    Nenhuma questão encontrada
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </div>
@@ -172,30 +368,3 @@ export default function QuestoesPage() {
     </div>
   )
 }
-
-const questoesMock = [
-  {
-    id: 1,
-    enunciado:
-      'Em um sistema de equações lineares, qual é a interpretação geométrica das soluções quando as retas são paralelas?',
-    area: AreaAvaliacao.Exatas,
-    tipo: TipoQuestao.ComponenteEspecifico,
-    dataCriacao: new Date('2024-01-15')
-  },
-  {
-    id: 2,
-    enunciado:
-      'Analise o impacto das redes sociais na formação da opinião pública e no processo democrático contemporâneo.',
-    area: AreaAvaliacao.Humanas,
-    tipo: TipoQuestao.FormacaoGeral,
-    dataCriacao: new Date('2024-02-01')
-  },
-  {
-    id: 3,
-    enunciado:
-      'Descreva o processo de síntese proteica e sua importância para o funcionamento celular.',
-    area: AreaAvaliacao.Saude,
-    tipo: TipoQuestao.ComponenteEspecifico,
-    dataCriacao: new Date('2024-02-15')
-  }
-]

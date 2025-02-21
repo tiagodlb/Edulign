@@ -122,7 +122,6 @@ export const adminSchema = Joi.object({
 export const questionSchema = Joi.object({
   enunciado: Joi.string()
     .min(10)
-    .max(100000000)
     .required()
     .messages({
       'string.min': 'Enunciado deve ter no mínimo {#limit} caracteres',
@@ -145,8 +144,6 @@ export const questionSchema = Joi.object({
 
   respostaCorreta: Joi.number()
     .integer()
-    .min(0)
-    .max(4)
     .required()
     .messages({
       'number.base': 'Resposta correta deve ser um número',
@@ -177,6 +174,10 @@ export const questionSchema = Joi.object({
       'number.max': 'Ano não pode ser maior que o ano atual',
       'any.required': 'Ano é obrigatório'
     })
+});
+
+export const questionIdSchema = Joi.object({
+  id: Joi.string().uuid().required()
 });
 
 // Schema for reviewing AI responses
@@ -218,5 +219,45 @@ export const simulatedExamSchema = Joi.object({
       'number.integer': 'Número de questões deve ser um número inteiro',
       'number.min': 'Número de questões deve ser maior ou igual a 1',
       'number.max': 'Número de questões não pode ser maior que 100'
+    })
+});
+
+export const simulatedExamUpdateSchema = Joi.object({
+  answers: Joi.array().items(
+    Joi.object({
+      questionId: Joi.string().uuid().required(),
+      selectedAnswer: Joi.string().required(),
+      timeSpent: Joi.number().min(0).required()
+    })
+  ),
+  completed: Joi.boolean().required()
+});
+
+export const aiSimulatedExamSchema = Joi.object({
+  area: Joi.string().required()
+    .messages({
+      'string.empty': 'A área é obrigatória',
+      'any.required': 'A área é obrigatória'
+    }),
+  subjects: Joi.array()
+    .items(Joi.string())
+    .min(1)
+    .max(5)
+    .required()
+    .messages({
+      'array.min': 'Selecione pelo menos 1 assunto',
+      'array.max': 'Selecione no máximo 5 assuntos',
+      'any.required': 'Os assuntos são obrigatórios'
+    }),
+  numberOfQuestions: Joi.number()
+    .integer()
+    .min(5)
+    .max(30)
+    .required()
+    .messages({
+      'number.base': 'O número de questões deve ser um número',
+      'number.min': 'O número mínimo de questões é 5',
+      'number.max': 'O número máximo de questões é 30',
+      'any.required': 'O número de questões é obrigatório'
     })
 });

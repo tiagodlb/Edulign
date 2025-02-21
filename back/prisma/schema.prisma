@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -20,7 +17,7 @@ model Usuario {
   senha         String
   ativo         Boolean        @default(true)
   administrador Boolean        @default(false)
-  dataCriacao   DateTime       @default(now()) // Add this field
+  dataCriacao   DateTime       @default(now())
   aluno         Aluno?
   admin         Administrador?
 }
@@ -37,60 +34,111 @@ model Administrador {
   id                   String         @id @default(uuid())
   usuario              Usuario        @relation(fields: [usuarioId], references: [id])
   usuarioId            String         @unique
-  questoesCadastradas  Questao[]
+  questoesCadastradas  Questao[]      @relation("QuestoesCadastradas")
   explicacoesRevisadas ExplicacaoIA[]
 }
 
 model Simulado {
   id          String     @id @default(uuid())
+  titulo      String
+  tipo        String // 'ENADE_AI', 'NORMAL'
+  area        String
+  tempoLimite Int // em minutos
   aluno       Aluno      @relation(fields: [alunoId], references: [id])
   alunoId     String
   questoes    Questao[]
   qtdQuestoes Int
-  dataInicio  DateTime
+  dataInicio  DateTime   @default(now())
   dataFim     DateTime?
   finalizado  Boolean    @default(false)
   respostas   Resposta[]
+
+  @@index([alunoId])
+  @@map("simulados")
 }
 
 model Questao {
-  id              String        @id @default(uuid())
-  enunciado       String
-  alternativas    String[]
-  respostaCorreta Int
-  area            String
-  ano             Int
-  autor           Administrador @relation(fields: [autorId], references: [id])
-  autorId         String
-  dataCriacao     DateTime      @default(now())
+  id           String        @id @default(uuid())
+  enunciado    String        @db.Text
+  comando      String        @db.Text
+  area         String
+  tipo         String // 'ENADE_AI', 'MANUAL', 'IMPORTADO'
+  nivel        String // 'facil', 'medio', 'dificil'
+  alternativas Alternativa[]
+  suportes     Suporte[]
+  topicos      String[]
+  competencias String[]
+  referencias  String[]      @db.Text
+  dataCriacao  DateTime      @default(now())
+  ano          Int? // Ano da prova ENADE (opcional)
+
+  // Relações
   simulados       Simulado[]
   respostas       Resposta[]
-  explicacao      ExplicacaoIA?
+  explicacaoIA    ExplicacaoIA?
+  cadastradoPor   Administrador? @relation("QuestoesCadastradas", fields: [cadastradoPorId], references: [id])
+  cadastradoPorId String?
+
+  @@index([area, tipo])
+  @@map("questoes")
+}
+
+model Alternativa {
+  id            String     @id @default(uuid())
+  texto         String     @db.Text
+  correta       Boolean
+  justificativa String?    @db.Text
+  questaoId     String
+  questao       Questao    @relation(fields: [questaoId], references: [id], onDelete: Cascade)
+  respostas     Resposta[]
+
+  @@index([questaoId])
+  @@map("alternativas")
+}
+
+model Suporte {
+  id        String  @id @default(uuid())
+  tipo      String // 'texto', 'imagem', 'tabela', 'grafico'
+  conteudo  String  @db.Text
+  questaoId String
+  questao   Questao @relation(fields: [questaoId], references: [id], onDelete: Cascade)
+
+  @@index([questaoId])
+  @@map("suportes")
 }
 
 model Resposta {
-  id                     String   @id @default(uuid())
-  aluno                  Aluno    @relation(fields: [alunoId], references: [id])
-  alunoId                String
-  questao                Questao  @relation(fields: [questaoId], references: [id])
-  questaoId              String
-  alternativaSelecionada Int
-  correta                Boolean
-  explicacao             String?
-  dataResposta           DateTime @default(now())
-  tempoResposta          Float
-  simulado               Simulado @relation(fields: [simuladoId], references: [id])
-  simuladoId             String
+  id            String      @id @default(uuid())
+  aluno         Aluno       @relation(fields: [alunoId], references: [id])
+  alunoId       String
+  questao       Questao     @relation(fields: [questaoId], references: [id])
+  questaoId     String
+  alternativa   Alternativa @relation(fields: [alternativaId], references: [id])
+  alternativaId String
+  correta       Boolean
+  dataResposta  DateTime    @default(now())
+  tempoResposta Float // em segundos
+  simulado      Simulado    @relation(fields: [simuladoId], references: [id])
+  simuladoId    String
+
+  @@unique([simuladoId, questaoId])
+  @@index([alunoId, simuladoId])
+  @@map("respostas")
 }
 
 model ExplicacaoIA {
   id          String        @id @default(uuid())
   questao     Questao       @relation(fields: [questaoId], references: [id])
   questaoId   String        @unique
-  explicacao  String
+  explicacao  String        @db.Text
   revisada    Boolean       @default(false)
   revisor     Administrador @relation(fields: [revisorId], references: [id])
   revisorId   String
   dataGeracao DateTime      @default(now())
-  links       String[]
+  dataRevisao DateTime?
+  links       String[]      @db.Text
+  observacoes String?       @db.Text
+
+  @@index([revisorId])
+  @@map("explicacoes_ia")
 }

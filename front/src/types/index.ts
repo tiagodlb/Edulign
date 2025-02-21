@@ -5,11 +5,8 @@ export enum StatusCiclo {
 }
 
 export enum AreaAvaliacao {
-  Exatas = 'Exatas',
-  Humanas = 'Humanas',
-  Biologicas = 'Biológicas',
-  Saude = 'Saúde',
-  Tecnologia = 'Tecnologia'
+  Arq_Urb = 'Arquitetura e Urbanismo',
+  Eng_Comp = 'Engenharia da Computação'
 }
 
 export interface Simulado {
@@ -24,7 +21,7 @@ export interface Simulado {
 }
 
 export interface Question {
-  id: number
+  id: string
   question: string
   options: string[]
   correctAnswer: string

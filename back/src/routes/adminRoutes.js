@@ -143,12 +143,6 @@ router.post('/questions',
   adminController.createQuestion
 );
 
-router.delete('/delete-questions/:id', 
-  authMiddleware,
-  adminMiddleware,
-  adminController.deleteResponse
-);
-
 /**
  * @swagger
  * /admin/questions/{id}:
