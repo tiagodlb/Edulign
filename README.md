@@ -1,7 +1,7 @@
-# EduLign
+# Edulign
 
 ## 📚 Visão Geral do Projeto
-EduLign é uma plataforma educacional abrangente projetada para alinhar experiências de aprendizagem em múltiplos contextos, facilitando o desenvolvimento acadêmico e profissional dos usuários.
+Edulign é uma plataforma educacional abrangente projetada para alinhar experiências de aprendizagem em múltiplos contextos, facilitando o desenvolvimento acadêmico e profissional dos usuários.
 
 ## 🎯 Objetivos
 - Democratizar o acesso à educação de qualidade
