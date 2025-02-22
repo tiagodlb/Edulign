@@ -108,10 +108,10 @@ npm run dev
 
 ## 👥 Colaboradores
 - Daniel Duarte - Desenvolvedor Full-stack
-- Tiago de Lima - Desenvolvedor Frontend
-- Yasmin Mendes - Desenvolvedora Backend
-- Lucas Emanoel Amaral - Analista de UI/UX
-- Arlindo Macieira - Gerente de Projeto
+- Tiago de Lima - Desenvolvedor Full-stack
+- Yasmin Mendes - Desenvolvedora Full-stack
+- Lucas Emanoel Amaral - Desenvolvedora Full-stack
+- Arlindo Macieira - Desenvolvedora Full-stack
 
 ## 🎓 Informações Acadêmicas
 Este projeto foi desenvolvido como parte da disciplina PROJETO E DESENVOLVIMENTO DE SOFTWARE, sob orientação do Professor Dr. THALES LEVI AZEVEDO VALENTE, durante o semestre letivo 2024.2 no curso de Engenharia da Computação da Universidade Federal do Maranhão (UFMA).
