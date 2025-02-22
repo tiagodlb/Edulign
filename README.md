@@ -22,7 +22,7 @@ Edulign é uma plataforma educacional abrangente projetada para alinhar experiê
 #### Configuração do Backend
 ```bash
 # Clone o repositório
-git clone https://github.com/seuusuario/edulign.git
+git clone git@github.com:tiagodlb/Edulign.git
 cd edulign/back
 
 # Instale as dependências
@@ -45,7 +45,7 @@ npm run dev
 #### Configuração do Frontend
 ```bash
 # Navegue até o diretório do frontend
-cd ../edulign-front
+cd ../front
 
 # Instale as dependências
 npm install
