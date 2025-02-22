@@ -123,7 +123,7 @@ Este projeto está licenciado sob a Licença MIT - veja os detalhes abaixo.
 
 # Reconhecimentos e Direitos Autorais
 @autor: Daniel Duarte, Tiago de Lima, Yasmin Mendes, Lucas Emanoel Amaral, Arlindo Macieira
-@contato: [Seus Emails - se quiserem]
+@contato: [tigolimab223@gmail.com]
 @data última versão: 21/02/2025
 @versão: 1.0
 @outros repositórios: [URLs - apontem para os seus Gits, se quiserem]
