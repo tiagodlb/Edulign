@@ -10,6 +10,22 @@ const router = express.Router();
 // Todas as rotas requerem autenticação e papel de professor
 router.use(authMiddleware, professorMiddleware);
 
+/**
+ * @swagger
+ * /professor/turmas:
+ *   get:
+ *     summary: Lista todas as turmas do professor
+ *     tags: [Professor]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de turmas recuperada com sucesso
+ *       401:
+ *         description: Não autorizado
+ */
+router.get('/turmas', authMiddleware, professorController.listarTurmas);
+
 // ========== TURMAS ==========
 router.get('/turmas', professorController.listarTurmas);
 router.post('/turmas', professorController.criarTurma);

@@ -261,3 +261,10 @@ export const aiSimulatedExamSchema = Joi.object({
       'any.required': 'O número de questões é obrigatório'
     })
 });
+
+export const classEntrySchema = Joi.object({
+  codigoTurma: Joi.string().required().messages({
+    'string.empty': 'O código da turma é obrigatório',
+    'any.required': 'O código da turma é obrigatório'
+  })
+});

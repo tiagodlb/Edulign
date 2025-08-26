@@ -411,3 +411,139 @@ export const exportStudentData = asyncHandler(async (req, res) => {
   res.setHeader('Content-Disposition', 'attachment; filename=student_data.pdf');
   res.status(200).send(pdfData);
 });
+
+export const entrarNaTurma = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const { codigoTurma } = req.body;
+
+  const aluno = await db.aluno.findFirst({
+    where: { usuarioId: userId }
+  });
+
+  if (!aluno) {
+    throw new AppError('Usuário não está registrado como aluno', 404);
+  }
+
+  // Verificar se a turma existe
+  const turma = await db.turma.findFirst({
+    where: { codigo: codigoTurma }
+  });
+
+  if (!turma) {
+    throw new AppError('Turma não encontrada', 404);
+  }
+
+  // Verificar se o aluno já está em uma turma
+  const alunoTurma = await db.alunoTurma.findFirst({
+    where: { alunoId: aluno.id }
+  });
+
+  if (alunoTurma) {
+    throw new AppError('Aluno já está em uma turma', 400);
+  }
+
+  // Adicionar aluno à turma
+  const novaAlunoTurma = await db.alunoTurma.create({
+    data: {
+      alunoId: aluno.id,
+      turmaId: turma.id,
+      dataIngresso: new Date()
+    }
+  });
+
+  res.status(200).json({
+    success: true,
+    data: {
+      message: 'Aluno adicionado à turma com sucesso',
+      turma: turma
+    }
+  });
+});
+
+export const minhaTurma = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+
+  const aluno = await db.aluno.findFirst({
+    where: { usuarioId: userId }
+  });
+
+  if (!aluno) {
+    throw new AppError('Usuário não está registrado como aluno', 404);
+  }
+
+  // Buscar turma do aluno com informações detalhadas
+  const alunoTurma = await db.alunoTurma.findFirst({
+    where: { alunoId: aluno.id },
+    include: {
+      turma: {
+        include: {
+          professor: {
+            include: {
+              usuario: {
+                select: {
+                  nome: true,
+                  email: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
+  if (!alunoTurma) {
+    throw new AppError('Aluno não está em nenhuma turma', 404);
+  }
+
+  res.status(200).json({
+    success: true,
+    data: {
+      turma: {
+        id: alunoTurma.turma.id,
+        nome: alunoTurma.turma.nome,
+        codigo: alunoTurma.turma.codigo,
+        professor: {
+          nome: alunoTurma.turma.professor.usuario.nome,
+          email: alunoTurma.turma.professor.usuario.email
+        },
+        dataIngresso: alunoTurma.dataIngresso
+      }
+    }
+  });
+});
+
+export const sairDaTurma = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+
+  const aluno = await db.aluno.findFirst({
+    where: { usuarioId: userId }
+  });
+
+  if (!aluno) {
+    throw new AppError('Usuário não está registrado como aluno', 404);
+  }
+
+  // Verificar se o aluno está em uma turma
+  const alunoTurma = await db.alunoTurma.findFirst({
+    where: { alunoId: aluno.id }
+  });
+
+  if (!alunoTurma) {
+    throw new AppError('Aluno não está em nenhuma turma', 404);
+  }
+
+  // Remover aluno da turma
+  await db.alunoTurma.delete({
+    where: {
+      id: alunoTurma.id
+    }
+  });
+
+  res.status(200).json({
+    success: true,
+    data: {
+      message: 'Aluno removido da turma com sucesso'
+    }
+  });
+});

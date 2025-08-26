@@ -89,11 +89,11 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 // Server initialization
-const server = app.listen(process.env.PORT || 3000, () => {
+const server = app.listen(process.env.PORT || 4333, () => {
   console.log(`
 🚀 Server is running in ${process.env.NODE_ENV} mode
-📡 Listening on port ${process.env.PORT || 3000}
-📚 API Documentation: http://localhost:${process.env.PORT || 3000}/api-docs
+📡 Listening on port ${process.env.PORT || 4333}
+📚 API Documentation: http://localhost:${process.env.PORT || 4333}/api-docs
   `);
 });
 

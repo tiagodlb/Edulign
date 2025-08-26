@@ -3,6 +3,8 @@ import * as studentRepository from '../repositories/studentRepository.js';
 import { fetchExplanationFromAI } from '../utils/aiUtils.js';
 import { generatePDF } from '../utils/pdfUtils.js';
 import { OpenAI } from 'openai';
+import dotenv from 'dotenv';
+dotenv.config();
 
 /**
  * Lista provas ENADE com filtros opcionais

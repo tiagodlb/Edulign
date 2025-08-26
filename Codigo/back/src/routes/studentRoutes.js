@@ -2,7 +2,7 @@ import express from 'express';
 import * as studentController from '../controllers/studentController.js';
 import authMiddleware from '../middleware/authMiddleware.js';
 import validateRequest from '../middleware/joiValidationMiddleware.js';
-import { simulatedExamSchema, simulatedExamUpdateSchema, questionIdSchema, aiSimulatedExamSchema } from '../utils/validationSchemas.js';
+import { simulatedExamSchema, simulatedExamUpdateSchema, questionIdSchema, aiSimulatedExamSchema, classEntrySchema } from '../utils/validationSchemas.js';
 
 const router = express.Router();
 
@@ -308,9 +308,69 @@ router.post(
   studentController.createAiSimulatedExam
 );
 
+/**
+ * @swagger
+ * /student/turmas/entrar:
+ *   post:
+ *     summary: Permite que um aluno entre em uma turma
+ *     tags: [Student]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               codigoTurma:
+ *                 type: string
+ *                 example: "ABC123"
+ *     responses:
+ *       200:
+ *         description: Entrada na turma realizada com sucesso
+ *       400:
+ *         description: Código de turma inválido
+ *       404:
+ *         description: Turma não encontrada
+ */
+router.post(
+  '/turmas/entrar',
+  authMiddleware,
+  validateRequest(classEntrySchema),
+  studentController.entrarNaTurma
+);
 
-router.post('/turmas/entrar', authMiddleware, studentController.entrarNaTurma);
+/**
+ * @swagger
+ * /student/turmas/minha:
+ *   get:
+ *     summary: Obtém informações da turma atual do aluno
+ *     tags: [Student]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Informações da turma recuperadas com sucesso
+ *       404:
+ *         description: Aluno não está em nenhuma turma
+ */
 router.get('/turmas/minha', authMiddleware, studentController.minhaTurma);
+
+/**
+ * @swagger
+ * /student/turmas/sair:
+ *   delete:
+ *     summary: Remove o aluno da turma atual
+ *     tags: [Student]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Saída da turma realizada com sucesso
+ *       404:
+ *         description: Aluno não está em nenhuma turma
+ */
 router.delete('/turmas/sair', authMiddleware, studentController.sairDaTurma);
 
 export default router;
