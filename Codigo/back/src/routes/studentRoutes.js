@@ -308,4 +308,9 @@ router.post(
   studentController.createAiSimulatedExam
 );
 
+
+router.post('/turmas/entrar', authMiddleware, studentController.entrarNaTurma);
+router.get('/turmas/minha', authMiddleware, studentController.minhaTurma);
+router.delete('/turmas/sair', authMiddleware, studentController.sairDaTurma);
+
 export default router;

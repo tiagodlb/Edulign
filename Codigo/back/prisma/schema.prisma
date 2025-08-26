@@ -20,14 +20,86 @@ model Usuario {
   dataCriacao   DateTime       @default(now())
   aluno         Aluno?
   admin         Administrador?
+  professor     Professor?
+}
+
+model Professor {
+  id        String           @id @default(uuid())
+  usuario   Usuario          @relation(fields: [usuarioId], references: [id])
+  usuarioId String           @unique
+  turmas    ProfessorTurma[]
+
+  @@map("professores")
+}
+
+model Turma {
+  id              String   @id @default(uuid())
+  nome            String
+  descricao       String?
+  codigo          String   @unique // Código único para alunos entrarem
+  ativa           Boolean  @default(true)
+  dataCriacao     DateTime @default(now())
+  dataAtualizacao DateTime @updatedAt
+
+  // Relações
+  alunos      Aluno[]
+  professores ProfessorTurma[]
+  simulados   SimuladoTurma[]
+  materiais   MaterialTurma[]
+
+  @@map("turmas")
+}
+
+model ProfessorTurma {
+  id          String    @id @default(uuid())
+  professor   Professor @relation(fields: [professorId], references: [id])
+  professorId String
+  turma       Turma     @relation(fields: [turmaId], references: [id])
+  turmaId     String
+  principal   Boolean   @default(false) // Professor principal da turma
+  dataEntrada DateTime  @default(now())
+
+  @@unique([professorId, turmaId])
+  @@map("professor_turma")
+}
+
+model SimuladoTurma {
+  id               String    @id @default(uuid())
+  simulado         Simulado  @relation(fields: [simuladoId], references: [id])
+  simuladoId       String
+  turma            Turma     @relation(fields: [turmaId], references: [id])
+  turmaId          String
+  dataLiberacao    DateTime
+  dataEncerramento DateTime?
+
+  @@unique([simuladoId, turmaId])
+  @@map("simulado_turma")
+}
+
+model MaterialTurma {
+  id          String   @id @default(uuid())
+  titulo      String
+  descricao   String?
+  tipo        String // 'PDF', 'VIDEO', 'LINK', 'ARQUIVO'
+  url         String?
+  arquivo     String? // Caminho do arquivo se for upload
+  turma       Turma    @relation(fields: [turmaId], references: [id])
+  turmaId     String
+  dataCriacao DateTime @default(now())
+
+  @@map("material_turma")
 }
 
 model Aluno {
   id        String     @id @default(uuid())
   usuario   Usuario    @relation(fields: [usuarioId], references: [id])
   usuarioId String     @unique
+  turma     Turma?     @relation(fields: [turmaId], references: [id])
+  turmaId   String?
   simulados Simulado[]
   respostas Resposta[]
+
+  @@map("alunos")
 }
 
 model Administrador {
@@ -39,19 +111,20 @@ model Administrador {
 }
 
 model Simulado {
-  id          String     @id @default(uuid())
+  id          String          @id @default(uuid())
   titulo      String
   tipo        String // 'ENADE_AI', 'NORMAL'
   area        String
   tempoLimite Int // em minutos
-  aluno       Aluno      @relation(fields: [alunoId], references: [id])
+  aluno       Aluno           @relation(fields: [alunoId], references: [id])
   alunoId     String
   questoes    Questao[]
   qtdQuestoes Int
-  dataInicio  DateTime   @default(now())
+  dataInicio  DateTime        @default(now())
   dataFim     DateTime?
-  finalizado  Boolean    @default(false)
+  finalizado  Boolean         @default(false)
   respostas   Resposta[]
+  turmas      SimuladoTurma[]
 
   @@index([alunoId])
   @@map("simulados")
