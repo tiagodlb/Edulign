@@ -4,7 +4,6 @@ import { Inter } from 'next/font/google'
 import type React from 'react'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Metadata, Viewport } from 'next'
-import { MainNav } from '@/components/layout/main-nav'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -75,23 +74,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
           disableTransitionOnChange
         >
           <AuthProvider>
-            <div id="root" className="min-h-screen bg-background">
-              <header className="border-b px-4 py-3">
-                <MainNav />
-              </header>
-              <main id="main-content" className="p-4">
-                {children}
-              </main>
-            </div>
+            {children}
           </AuthProvider>
         </ThemeProvider>
-        
-        <a 
-          href="#main-content" 
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md"
-        >
-          Pular para o conteúdo principal
-        </a>
       </body>
     </html>
   )
