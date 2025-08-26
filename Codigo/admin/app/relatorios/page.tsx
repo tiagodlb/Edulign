@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart'
-import { 
+import {
   BarChart,
   Bar,
   XAxis,
@@ -19,7 +19,7 @@ import {
   Cell,
   ResponsiveContainer
 } from 'recharts'
-import { 
+import {
   BarChart as BarChartIcon,
   TrendingUp,
   Users,
@@ -34,6 +34,7 @@ import {
   Activity
 } from 'lucide-react'
 import { useAuth } from '@/components/AuthProvider'
+import { SubjectReportTab } from './subject'
 
 interface ReportData {
   desempenhoTurmas: Array<{
@@ -235,7 +236,7 @@ export default function RelatoriosPage() {
             Análises e métricas do desempenho acadêmico
           </p>
         </div>
-        
+
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => exportReport('excel')}>
             <Download className="mr-2 h-4 w-4" />
@@ -338,10 +339,11 @@ export default function RelatoriosPage() {
       </div>
 
       {/* Abas de relatórios */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs>
+        <TabsList className="grid w-full grid-cols-5"> {/* Mudou de 4 para 5 colunas */}
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
           <TabsTrigger value="performance">Desempenho</TabsTrigger>
+          <TabsTrigger value="subjects">Assunto/Conteúdo</TabsTrigger> {/* Nova aba */}
           <TabsTrigger value="materials">Materiais</TabsTrigger>
           <TabsTrigger value="activity">Atividade</TabsTrigger>
         </TabsList>
@@ -358,7 +360,7 @@ export default function RelatoriosPage() {
                 <ChartContainer config={chartConfigs.desempenho} className="h-[300px]">
                   <BarChart data={reportData.desempenhoTurmas}>
                     <CartesianGrid vertical={false} />
-                    <XAxis 
+                    <XAxis
                       dataKey="turma"
                       tickLine={false}
                       tickMargin={10}
@@ -371,14 +373,14 @@ export default function RelatoriosPage() {
                     />
                     <ChartTooltip content={<ChartTooltipContent />} />
                     <ChartLegend content={<ChartLegendContent />} />
-                    <Bar 
-                      dataKey="media" 
-                      fill="var(--color-media)" 
+                    <Bar
+                      dataKey="media"
+                      fill="var(--color-media)"
                       radius={4}
                     />
-                    <Bar 
-                      dataKey="aprovacao" 
-                      fill="var(--color-aprovacao)" 
+                    <Bar
+                      dataKey="aprovacao"
+                      fill="var(--color-aprovacao)"
                       radius={4}
                     />
                   </BarChart>
@@ -426,12 +428,11 @@ export default function RelatoriosPage() {
                 {reportData.topAlunos.map((aluno) => (
                   <div key={aluno.posicao} className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                        aluno.posicao === 1 ? 'bg-yellow-100 text-yellow-800' :
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${aluno.posicao === 1 ? 'bg-yellow-100 text-yellow-800' :
                         aluno.posicao === 2 ? 'bg-gray-100 text-gray-800' :
-                        aluno.posicao === 3 ? 'bg-orange-100 text-orange-800' :
-                        'bg-blue-100 text-blue-800'
-                      }`}>
+                          aluno.posicao === 3 ? 'bg-orange-100 text-orange-800' :
+                            'bg-blue-100 text-blue-800'
+                        }`}>
                         {aluno.posicao}
                       </div>
                       <div>
@@ -461,7 +462,7 @@ export default function RelatoriosPage() {
               <ChartContainer config={chartConfigs.evolucao} className="h-[400px]">
                 <LineChart data={reportData.evolucaoNotas}>
                   <CartesianGrid vertical={false} />
-                  <XAxis 
+                  <XAxis
                     dataKey="periodo"
                     tickLine={false}
                     axisLine={false}
@@ -474,17 +475,17 @@ export default function RelatoriosPage() {
                   />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <ChartLegend content={<ChartLegendContent />} />
-                  <Line 
-                    dataKey="media" 
-                    type="monotone" 
-                    stroke="var(--color-media)" 
+                  <Line
+                    dataKey="media"
+                    type="monotone"
+                    stroke="var(--color-media)"
                     strokeWidth={2}
                     dot={{ r: 4 }}
                   />
-                  <Line 
-                    dataKey="participantes" 
-                    type="monotone" 
-                    stroke="var(--color-participantes)" 
+                  <Line
+                    dataKey="participantes"
+                    type="monotone"
+                    stroke="var(--color-participantes)"
                     strokeWidth={2}
                     dot={{ r: 4 }}
                   />
@@ -505,7 +506,7 @@ export default function RelatoriosPage() {
               <ChartContainer config={chartConfigs.materiais} className="h-[400px]">
                 <BarChart data={reportData.usoMateriais}>
                   <CartesianGrid vertical={false} />
-                  <XAxis 
+                  <XAxis
                     dataKey="material"
                     tickLine={false}
                     tickMargin={10}
@@ -518,14 +519,14 @@ export default function RelatoriosPage() {
                   />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <ChartLegend content={<ChartLegendContent />} />
-                  <Bar 
-                    dataKey="downloads" 
-                    fill="var(--color-downloads)" 
+                  <Bar
+                    dataKey="downloads"
+                    fill="var(--color-downloads)"
                     radius={4}
                   />
-                  <Bar 
-                    dataKey="visualizacoes" 
-                    fill="var(--color-visualizacoes)" 
+                  <Bar
+                    dataKey="visualizacoes"
+                    fill="var(--color-visualizacoes)"
                     radius={4}
                   />
                 </BarChart>
@@ -545,7 +546,7 @@ export default function RelatoriosPage() {
               <ChartContainer config={chartConfigs.atividade} className="h-[400px]">
                 <LineChart data={reportData.atividadeDiaria}>
                   <CartesianGrid vertical={false} />
-                  <XAxis 
+                  <XAxis
                     dataKey="data"
                     tickLine={false}
                     axisLine={false}
@@ -558,24 +559,24 @@ export default function RelatoriosPage() {
                   />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <ChartLegend content={<ChartLegendContent />} />
-                  <Line 
-                    dataKey="simulados" 
-                    type="monotone" 
-                    stroke="var(--color-simulados)" 
+                  <Line
+                    dataKey="simulados"
+                    type="monotone"
+                    stroke="var(--color-simulados)"
                     strokeWidth={2}
                     dot={{ r: 4 }}
                   />
-                  <Line 
-                    dataKey="materiais" 
-                    type="monotone" 
-                    stroke="var(--color-materiais)" 
+                  <Line
+                    dataKey="materiais"
+                    type="monotone"
+                    stroke="var(--color-materiais)"
                     strokeWidth={2}
                     dot={{ r: 4 }}
                   />
-                  <Line 
-                    dataKey="alunos" 
-                    type="monotone" 
-                    stroke="var(--color-alunos)" 
+                  <Line
+                    dataKey="alunos"
+                    type="monotone"
+                    stroke="var(--color-alunos)"
                     strokeWidth={2}
                     dot={{ r: 4 }}
                   />
@@ -583,6 +584,10 @@ export default function RelatoriosPage() {
               </ChartContainer>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="subjects" className="space-y-6">
+          <SubjectReportTab />
         </TabsContent>
       </Tabs>
     </div>
