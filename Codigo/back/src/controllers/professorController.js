@@ -263,112 +263,6 @@ export const listarSimuladosTurma = asyncHandler(async (req, res) => {
   });
 });
 
-// ========== MATERIAIS DA TURMA ==========
-
-// Adicionar material à turma
-export const adicionarMaterial = asyncHandler(async (req, res) => {
-  const userId = req.user.id;
-  const { id: turmaId } = req.params;
-  const { titulo, descricao, tipo, url, arquivo } = req.body;
-
-  // Validações
-  if (!titulo || !tipo) {
-    throw new AppError('Título e tipo do material são obrigatórios', 400);
-  }
-
-  if (tipo === 'LINK' && !url) {
-    throw new AppError('URL é obrigatória para materiais do tipo LINK', 400);
-  }
-
-  // Verificar acesso do professor
-  const professor = await db.professor.findFirst({
-    where: { usuarioId: userId }
-  });
-
-  if (!professor) {
-    throw new AppError('Professor não encontrado', 404);
-  }
-
-  const hasAccess = await professorService.verificarAcessoTurma(professor.id, turmaId);
-  if (!hasAccess) {
-    throw new AppError('Acesso negado a esta turma', 403);
-  }
-
-  const material = await professorService.adicionarMaterial(turmaId, {
-    titulo,
-    descricao,
-    tipo,
-    url,
-    arquivo
-  });
-
-  res.status(201).json({ 
-    success: true, 
-    data: material,
-    message: 'Material adicionado com sucesso'
-  });
-});
-
-// Listar materiais da turma
-export const listarMateriais = asyncHandler(async (req, res) => {
-  const userId = req.user.id;
-  const { id: turmaId } = req.params;
-  const { tipo, page = 1, limit = 20 } = req.query;
-
-  // Verificar acesso do professor
-  const professor = await db.professor.findFirst({
-    where: { usuarioId: userId }
-  });
-
-  if (!professor) {
-    throw new AppError('Professor não encontrado', 404);
-  }
-
-  const hasAccess = await professorService.verificarAcessoTurma(professor.id, turmaId);
-  if (!hasAccess) {
-    throw new AppError('Acesso negado a esta turma', 403);
-  }
-
-  const materiais = await professorService.listarMateriaisTurma(turmaId, {
-    tipo,
-    page: parseInt(page),
-    limit: parseInt(limit)
-  });
-
-  res.status(200).json({ 
-    success: true, 
-    data: materiais.data,
-    pagination: materiais.pagination
-  });
-});
-
-// Remover material da turma
-export const removerMaterial = asyncHandler(async (req, res) => {
-  const userId = req.user.id;
-  const { turmaId, materialId } = req.params;
-
-  // Verificar acesso do professor
-  const professor = await db.professor.findFirst({
-    where: { usuarioId: userId }
-  });
-
-  if (!professor) {
-    throw new AppError('Professor não encontrado', 404);
-  }
-
-  const hasAccess = await professorService.verificarAcessoTurma(professor.id, turmaId);
-  if (!hasAccess) {
-    throw new AppError('Acesso negado a esta turma', 403);
-  }
-
-  await professorService.removerMaterial(materialId);
-
-  res.status(200).json({ 
-    success: true, 
-    message: 'Material removido com sucesso'
-  });
-});
-
 // ========== ESTATÍSTICAS E RELATÓRIOS ==========
 
 // Obter estatísticas da turma
@@ -489,5 +383,172 @@ export const removerProfessor = asyncHandler(async (req, res) => {
   res.status(200).json({ 
     success: true, 
     message: 'Professor removido da turma com sucesso'
+  });
+});
+
+export const adicionarMaterial = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const { id: turmaId } = req.params;
+  const { titulo, descricao, tipo, url, tags, categoria } = req.body;
+  const arquivo = req.file; // Arquivo enviado via multer
+
+  // Validações
+  if (!titulo || !tipo) {
+    throw new AppError('Título e tipo do material são obrigatórios', 400);
+  }
+
+  // Validar tipo
+  const tiposValidos = ['PDF', 'VIDEO', 'LINK', 'DOCUMENTO'];
+  if (!tiposValidos.includes(tipo)) {
+    throw new AppError('Tipo de material inválido', 400);
+  }
+
+  // Se for link, precisa ter URL
+  if (tipo === 'LINK' && !url) {
+    throw new AppError('URL é obrigatória para materiais do tipo LINK', 400);
+  }
+
+  // Se não for link, precisa ter arquivo
+  if (tipo !== 'LINK' && !arquivo) {
+    throw new AppError('Arquivo é obrigatório para este tipo de material', 400);
+  }
+
+  // Verificar acesso do professor
+  const professor = await db.professor.findFirst({
+    where: { usuarioId: userId }
+  });
+
+  if (!professor) {
+    throw new AppError('Professor não encontrado', 404);
+  }
+
+  const hasAccess = await professorService.verificarAcessoTurma(professor.id, turmaId);
+  if (!hasAccess) {
+    throw new AppError('Acesso negado a esta turma', 403);
+  }
+
+  // Preparar dados do material
+  const materialData = {
+    titulo,
+    descricao: descricao || null,
+    tipo,
+    url: url || null,
+    arquivo: arquivo ? arquivo.path : null, // Caminho do arquivo salvo
+    tamanho: arquivo ? `${(arquivo.size / (1024 * 1024)).toFixed(2)} MB` : null,
+    tags: tags ? (typeof tags === 'string' ? JSON.parse(tags) : tags) : [],
+    categoria: categoria || 'Geral'
+  };
+
+  // Adicionar material via service
+  const material = await professorService.adicionarMaterial(turmaId, materialData);
+
+  res.status(201).json({ 
+    success: true, 
+    data: material,
+    message: 'Material adicionado com sucesso'
+  });
+});
+
+// Listar materiais da turma (VERSÃO ATUALIZADA)
+export const listarMateriais = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const { id: turmaId } = req.params;
+  const { tipo, page = 1, limit = 20, search } = req.query;
+
+  // Verificar acesso do professor
+  const professor = await db.professor.findFirst({
+    where: { usuarioId: userId }
+  });
+
+  if (!professor) {
+    throw new AppError('Professor não encontrado', 404);
+  }
+
+  const hasAccess = await professorService.verificarAcessoTurma(professor.id, turmaId);
+  if (!hasAccess) {
+    throw new AppError('Acesso negado a esta turma', 403);
+  }
+
+  // Buscar materiais com filtros
+  const materiais = await professorService.listarMateriaisTurma(turmaId, {
+    tipo,
+    search,
+    page: parseInt(page),
+    limit: parseInt(limit)
+  });
+
+  // Formatar resposta incluindo informações adicionais
+  const materiaisFormatados = materiais.data.map(material => ({
+    id: material.id,
+    titulo: material.titulo,
+    descricao: material.descricao,
+    tipo: material.tipo,
+    url: material.url,
+    arquivo: material.arquivo,
+    tamanho: material.tamanho,
+    tags: material.tags || [],
+    categoria: material.categoria || 'Geral',
+    turmaId: material.turmaId,
+    dataCriacao: material.dataCriacao,
+    dataAtualizacao: material.dataAtualizacao
+  }));
+
+  res.status(200).json({ 
+    success: true, 
+    data: {
+      data: materiaisFormatados,
+      pagination: materiais.pagination
+    }
+  });
+});
+
+// Remover material da turma (mantém a mesma)
+export const removerMaterial = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const { turmaId, materialId } = req.params;
+
+  // Verificar acesso do professor
+  const professor = await db.professor.findFirst({
+    where: { usuarioId: userId }
+  });
+
+  if (!professor) {
+    throw new AppError('Professor não encontrado', 404);
+  }
+
+  const hasAccess = await professorService.verificarAcessoTurma(professor.id, turmaId);
+  if (!hasAccess) {
+    throw new AppError('Acesso negado a esta turma', 403);
+  }
+
+  // Buscar material para deletar arquivo se existir
+  const material = await db.materialTurma.findUnique({
+    where: { id: materialId }
+  });
+
+  if (!material) {
+    throw new AppError('Material não encontrado', 404);
+  }
+
+  // Se tiver arquivo físico, deletar
+  if (material.arquivo) {
+    const fs = await import('fs').then(m => m.promises);
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), material.arquivo);
+    
+    try {
+      await fs.unlink(filePath);
+    } catch (error) {
+      console.error('Erro ao deletar arquivo:', error);
+      // Continuar mesmo se não conseguir deletar o arquivo
+    }
+  }
+
+  // Remover do banco de dados
+  await professorService.removerMaterial(materialId);
+
+  res.status(200).json({ 
+    success: true, 
+    message: 'Material removido com sucesso'
   });
 });

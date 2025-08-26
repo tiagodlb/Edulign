@@ -9,12 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { 
-  Upload, 
-  Search, 
+import { useToast } from '@/hooks/use-toast'
+import {
+  Upload,
+  Search,
   Filter,
-  FileText, 
-  FileImage, 
+  FileText,
+  FileImage,
   FileVideo,
   Download,
   Eye,
@@ -22,55 +23,39 @@ import {
   Plus,
   BookOpen,
   Calendar,
-  User
+  User,
+  Link2,
+  AlertCircle
 } from 'lucide-react'
 import { useAuth } from '@/components/AuthProvider'
-import { SiteHeader } from '@/components/layout/site-header'
+import { materialService, type Material, type Turma } from '@/lib/api/materials'
 
-interface Material {
-  id: string
-  nome: string
-  descricao: string
-  tipo: 'pdf' | 'video' | 'imagem' | 'documento'
-  arquivo: string
-  tamanho: string
-  dataUpload: string
-  turma: {
-    id: string
-    nome: string
-    codigo: string
-  }
-  professor: {
-    id: string
-    nome: string
-  }
-  categoria: string
-  tags: string[]
+interface MaterialDisplay extends Material {
+  turma?: Turma
 }
 
-interface Turma {
-  id: string
-  nome: string
-  codigo: string
-}
+type MaterialType = 'PDF' | 'VIDEO' | 'LINK' | 'DOCUMENTO'
 
 export default function MaterialsPage() {
   const { user } = useAuth()
-  const [materials, setMaterials] = useState<Material[]>([])
+  const { toast } = useToast()
+  const [materials, setMaterials] = useState<MaterialDisplay[]>([])
   const [turmas, setTurmas] = useState<Turma[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedTurma, setSelectedTurma] = useState<string>('all')
-  const [selectedCategoria, setSelectedCategoria] = useState<string>('all')
+  const [selectedTipo, setSelectedTipo] = useState<string>('all')
   const [isUploadOpen, setIsUploadOpen] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   // Form states
   const [uploadForm, setUploadForm] = useState({
-    nome: '',
+    titulo: '',
     descricao: '',
     turmaId: '',
-    categoria: '',
-    tags: '',
+    tipo: 'PDF' as MaterialType,
+    url: '',
     arquivo: null as File | null
   })
 
@@ -80,135 +65,259 @@ export default function MaterialsPage() {
 
   const loadData = async () => {
     try {
-      // Simular dados
-      const mockMaterials: Material[] = [
-        {
-          id: '1',
-          nome: 'Introdução aos Algoritmos',
-          descricao: 'Material base sobre conceitos fundamentais de algoritmos',
-          tipo: 'pdf',
-          arquivo: 'algoritmos_intro.pdf',
-          tamanho: '2.5 MB',
-          dataUpload: '2024-02-08T10:30:00',
-          turma: { id: '1', nome: 'Algoritmos e Estrutura de Dados', codigo: 'AED2024' },
-          professor: { id: '1', nome: 'Prof. João Silva' },
-          categoria: 'Teoria',
-          tags: ['algoritmos', 'fundamentos', 'programação']
-        },
-        {
-          id: '2',
-          nome: 'Aula 05 - Estruturas Condicionais',
-          descricao: 'Videoaula sobre if, else e switch case',
-          tipo: 'video',
-          arquivo: 'aula05_condicionais.mp4',
-          tamanho: '125 MB',
-          dataUpload: '2024-02-07T14:15:00',
-          turma: { id: '1', nome: 'Algoritmos e Estrutura de Dados', codigo: 'AED2024' },
-          professor: { id: '1', nome: 'Prof. João Silva' },
-          categoria: 'Videoaula',
-          tags: ['condicionais', 'programação', 'lógica']
-        },
-        {
-          id: '3',
-          nome: 'Exercícios de Fixação - Loops',
-          descricao: 'Lista de exercícios práticos sobre estruturas de repetição',
-          tipo: 'documento',
-          arquivo: 'exercicios_loops.docx',
-          tamanho: '890 KB',
-          dataUpload: '2024-02-06T16:45:00',
-          turma: { id: '2', nome: 'Engenharia de Software - 2024.2', codigo: 'ENG2024' },
-          professor: { id: '2', nome: 'Prof. Maria Santos' },
-          categoria: 'Exercícios',
-          tags: ['loops', 'exercícios', 'prática']
+      setIsLoading(true)
+
+      // Buscar turmas
+      const turmasData = await materialService.getTurmas()
+      setTurmas(turmasData)
+
+      // Se houver turmas, buscar materiais de todas
+      if (turmasData.length > 0) {
+        const allMaterials: MaterialDisplay[] = []
+
+        for (const turma of turmasData) {
+          try {
+            const turmaMateriails = await materialService.getMaterials(turma.id)
+            const materialsWithTurma = turmaMateriails.map(m => ({
+              ...m,
+              turma
+            }))
+            allMaterials.push(...materialsWithTurma)
+          } catch (error) {
+            console.error(`Erro ao buscar materiais da turma ${turma.nome}:`, error)
+          }
         }
-      ]
 
-      const mockTurmas: Turma[] = [
-        { id: '1', nome: 'Algoritmos e Estrutura de Dados', codigo: 'AED2024' },
-        { id: '2', nome: 'Engenharia de Software - 2024.2', codigo: 'ENG2024' },
-        { id: '3', nome: 'Banco de Dados Avançado', codigo: 'BDA2024' }
-      ]
-
-      setMaterials(mockMaterials)
-      setTurmas(mockTurmas)
+        setMaterials(allMaterials)
+      }
     } catch (error) {
       console.error('Erro ao carregar dados:', error)
+      toast({
+        title: 'Erro ao carregar dados',
+        description: 'Não foi possível carregar as informações. Tente novamente.',
+        variant: 'destructive'
+      })
     } finally {
       setIsLoading(false)
     }
   }
 
-  const getFileIcon = (tipo: Material['tipo']) => {
+  const loadMaterialsForTurma = async (turmaId: string) => {
+    try {
+      const materialsData = await materialService.getMaterials(
+        turmaId,
+        selectedTipo !== 'all' ? selectedTipo : undefined
+      )
+
+      const turma = turmas.find(t => t.id === turmaId)
+      const materialsWithTurma = materialsData.map(m => ({
+        ...m,
+        turma
+      }))
+
+      return materialsWithTurma
+    } catch (error) {
+      console.error('Erro ao buscar materiais:', error)
+      return []
+    }
+  }
+
+  const handleUpload = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!uploadForm.titulo || !uploadForm.turmaId || !uploadForm.tipo) {
+      toast({
+        title: 'Campos obrigatórios',
+        description: 'Por favor, preencha todos os campos obrigatórios',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    if (uploadForm.tipo === 'LINK' && !uploadForm.url) {
+      toast({
+        title: 'URL obrigatória',
+        description: 'Para materiais do tipo Link, a URL é obrigatória',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    if (uploadForm.tipo !== 'LINK' && !uploadForm.arquivo) {
+      toast({
+        title: 'Arquivo obrigatório',
+        description: 'Por favor, selecione um arquivo para upload',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    try {
+      setIsUploading(true)
+
+      await materialService.uploadMaterial(uploadForm.turmaId, {
+        titulo: uploadForm.titulo,
+        descricao: uploadForm.descricao,
+        tipo: uploadForm.tipo,
+        url: uploadForm.url || undefined,
+        arquivo: uploadForm.arquivo || undefined
+      })
+
+      toast({
+        title: 'Material adicionado',
+        description: 'O material foi adicionado com sucesso à turma'
+      })
+
+      // Limpar formulário
+      setUploadForm({
+        titulo: '',
+        descricao: '',
+        turmaId: '',
+        tipo: 'PDF',
+        url: '',
+        arquivo: null
+      })
+
+      setIsUploadOpen(false)
+
+      // Recarregar materiais
+      if (selectedTurma !== 'all') {
+        const newMaterials = await loadMaterialsForTurma(selectedTurma)
+        setMaterials(newMaterials)
+      } else {
+        await loadData()
+      }
+    } catch (error) {
+      console.error('Erro no upload:', error)
+      toast({
+        title: 'Erro no upload',
+        description: 'Não foi possível adicionar o material. Tente novamente.',
+        variant: 'destructive'
+      })
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const handleDelete = async (materialId: string, turmaId: string) => {
+    if (!confirm('Tem certeza que deseja remover este material?')) {
+      return
+    }
+
+    try {
+      setDeletingId(materialId)
+      await materialService.deleteMaterial(turmaId, materialId)
+
+      toast({
+        title: 'Material removido',
+        description: 'O material foi removido com sucesso'
+      })
+
+      // Atualizar lista
+      setMaterials(prev => prev.filter(m => m.id !== materialId))
+    } catch (error) {
+      console.error('Erro ao remover material:', error)
+      toast({
+        title: 'Erro ao remover',
+        description: 'Não foi possível remover o material. Tente novamente.',
+        variant: 'destructive'
+      })
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  const handleDownload = async (material: MaterialDisplay) => {
+    try {
+      await materialService.downloadMaterial(material.id, material.titulo)
+      toast({
+        title: 'Download iniciado',
+        description: `Fazendo download de ${material.titulo}`
+      })
+    } catch (error) {
+      console.error('Erro no download:', error)
+      toast({
+        title: 'Erro no download',
+        description: 'Não foi possível fazer o download do material.',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  const handleView = async (material: MaterialDisplay) => {
+    try {
+      const viewUrl = await materialService.viewMaterial(material.id)
+      if (viewUrl) {
+        window.open(viewUrl, '_blank')
+      }
+    } catch (error) {
+      console.error('Erro ao visualizar:', error)
+      toast({
+        title: 'Erro ao visualizar',
+        description: 'Não foi possível visualizar o material.',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  const getFileIcon = (tipo: string) => {
     switch (tipo) {
-      case 'pdf':
-      case 'documento':
+      case 'PDF':
+      case 'DOCUMENTO':
         return <FileText className="h-8 w-8" />
-      case 'video':
+      case 'VIDEO':
         return <FileVideo className="h-8 w-8" />
-      case 'imagem':
+      case 'IMAGEM':
         return <FileImage className="h-8 w-8" />
+      case 'LINK':
+        return <Link2 className="h-8 w-8" />
       default:
         return <FileText className="h-8 w-8" />
     }
   }
 
-  const getFileColor = (tipo: Material['tipo']) => {
+  const getFileColor = (tipo: string) => {
     switch (tipo) {
-      case 'pdf':
+      case 'PDF':
         return 'text-red-500'
-      case 'video':
+      case 'VIDEO':
         return 'text-blue-500'
-      case 'imagem':
+      case 'IMAGEM':
         return 'text-green-500'
-      case 'documento':
+      case 'DOCUMENTO':
         return 'text-purple-500'
+      case 'LINK':
+        return 'text-cyan-500'
       default:
         return 'text-gray-500'
     }
   }
 
+  // Filtrar materiais
   const filteredMaterials = materials.filter(material => {
-    const matchesSearch = material.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         material.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         material.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-    
-    const matchesTurma = selectedTurma === 'all' || material.turma.id === selectedTurma
-    const matchesCategoria = selectedCategoria === 'all' || material.categoria === selectedCategoria
+    const matchesSearch = material.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (material.descricao?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
 
-    return matchesSearch && matchesTurma && matchesCategoria
+    const matchesTurma = selectedTurma === 'all' || material.turmaId === selectedTurma
+    const matchesTipo = selectedTipo === 'all' || material.tipo === selectedTipo
+
+    return matchesSearch && matchesTurma && matchesTipo
   })
 
-  const categorias = [...new Set(materials.map(m => m.categoria))]
-
-  const handleUpload = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!uploadForm.arquivo || !uploadForm.turmaId) {
-      alert('Por favor, preencha todos os campos obrigatórios')
-      return
+  useEffect(() => {
+    const loadFilteredMaterials = async () => {
+      if (selectedTurma !== 'all') {
+        const newMaterials = await loadMaterialsForTurma(selectedTurma)
+        setMaterials(newMaterials)
+      } else {
+        await loadData()
+      }
     }
 
-    try {
-      // Aqui você faria o upload real
-      console.log('Uploading:', uploadForm)
-      
-      // Simular sucesso
-      setIsUploadOpen(false)
-      setUploadForm({
-        nome: '',
-        descricao: '',
-        turmaId: '',
-        categoria: '',
-        tags: '',
-        arquivo: null
-      })
-      
-      // Recarregar lista
-      await loadData()
-    } catch (error) {
-      console.error('Erro no upload:', error)
+    if (!isLoading) {
+      loadFilteredMaterials()
     }
-  }
+  }, [selectedTurma, selectedTipo])
 
   if (isLoading) {
     return (
@@ -228,7 +337,7 @@ export default function MaterialsPage() {
             Gerencie e organize os materiais das suas turmas
           </p>
         </div>
-        
+
         <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -240,59 +349,94 @@ export default function MaterialsPage() {
             <DialogHeader>
               <DialogTitle>Adicionar Novo Material</DialogTitle>
               <DialogDescription>
-                Faça upload de um novo material para suas turmas
+                Faça upload de um novo material ou adicione um link para suas turmas
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleUpload} className="space-y-4">
               <div className="grid gap-4">
                 <div>
-                  <Label htmlFor="arquivo">Arquivo *</Label>
+                  <Label htmlFor="titulo">Título *</Label>
                   <Input
-                    id="arquivo"
-                    type="file"
-                    onChange={(e) => setUploadForm(prev => ({ 
-                      ...prev, 
-                      arquivo: e.target.files?.[0] || null 
+                    id="titulo"
+                    value={uploadForm.titulo}
+                    onChange={(e) => setUploadForm(prev => ({
+                      ...prev,
+                      titulo: e.target.value
                     }))}
-                    accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.mp4,.avi"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="nome">Nome do Material *</Label>
-                  <Input
-                    id="nome"
-                    value={uploadForm.nome}
-                    onChange={(e) => setUploadForm(prev => ({ ...prev, nome: e.target.value }))}
-                    placeholder="Ex: Aula 01 - Introdução"
+                    placeholder="Ex: Introdução à Programação"
                     required
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="descricao">Descrição</Label>
-                  <Textarea
-                    id="descricao"
-                    value={uploadForm.descricao}
-                    onChange={(e) => setUploadForm(prev => ({ ...prev, descricao: e.target.value }))}
-                    placeholder="Breve descrição do material..."
-                  />
+                  <Label htmlFor="tipo">Tipo *</Label>
+                  <Select
+                    value={uploadForm.tipo}
+                    onValueChange={(value: 'PDF' | 'VIDEO' | 'LINK' | 'DOCUMENTO') =>
+                      setUploadForm(prev => ({ ...prev, tipo: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PDF">PDF</SelectItem>
+                      <SelectItem value="VIDEO">Vídeo</SelectItem>
+                      <SelectItem value="DOCUMENTO">Documento</SelectItem>
+                      <SelectItem value="LINK">Link</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
+                {uploadForm.tipo === 'LINK' ? (
+                  <div>
+                    <Label htmlFor="url">URL *</Label>
+                    <Input
+                      id="url"
+                      type="url"
+                      value={uploadForm.url}
+                      onChange={(e) => setUploadForm(prev => ({
+                        ...prev,
+                        url: e.target.value
+                      }))}
+                      placeholder="https://exemplo.com/material"
+                      required={uploadForm.tipo === 'LINK'}
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <Label htmlFor="arquivo">Arquivo *</Label>
+                    <Input
+                      id="arquivo"
+                      type="file"
+                      onChange={(e) => setUploadForm(prev => ({
+                        ...prev,
+                        arquivo: e.target.files?.[0] || null
+                      }))}
+                      accept={
+                        uploadForm.tipo === 'PDF' ? '.pdf' :
+                          uploadForm.tipo === 'VIDEO' ? '.mp4,.avi,.mov,.wmv' :
+                            uploadForm.tipo === 'DOCUMENTO' ? '.doc,.docx,.txt,.odt' :
+                              '*'
+                      }
+                      required={String(uploadForm.tipo) !== 'LINK'}
+                    />
+                  </div>
+                )}
+
                 <div>
-                  <Label htmlFor="turma">Turma *</Label>
-                  <Select 
-                    value={uploadForm.turmaId} 
+                  <Label htmlFor="turmaId">Turma *</Label>
+                  <Select
+                    value={uploadForm.turmaId}
                     onValueChange={(value) => setUploadForm(prev => ({ ...prev, turmaId: value }))}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma turma" />
+                      <SelectValue placeholder="Selecione a turma" />
                     </SelectTrigger>
                     <SelectContent>
                       {turmas.map((turma) => (
                         <SelectItem key={turma.id} value={turma.id}>
-                          {turma.nome} ({turma.codigo})
+                          {turma.codigo} - {turma.nome}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -300,33 +444,41 @@ export default function MaterialsPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="categoria">Categoria</Label>
-                  <Input
-                    id="categoria"
-                    value={uploadForm.categoria}
-                    onChange={(e) => setUploadForm(prev => ({ ...prev, categoria: e.target.value }))}
-                    placeholder="Ex: Teoria, Exercícios, Videoaula"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="tags">Tags (separadas por vírgula)</Label>
-                  <Input
-                    id="tags"
-                    value={uploadForm.tags}
-                    onChange={(e) => setUploadForm(prev => ({ ...prev, tags: e.target.value }))}
-                    placeholder="Ex: algoritmos, programação, fundamentos"
+                  <Label htmlFor="descricao">Descrição</Label>
+                  <Textarea
+                    id="descricao"
+                    value={uploadForm.descricao}
+                    onChange={(e) => setUploadForm(prev => ({
+                      ...prev,
+                      descricao: e.target.value
+                    }))}
+                    placeholder="Descreva o conteúdo do material..."
+                    rows={3}
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3">
-                <Button type="button" variant="outline" onClick={() => setIsUploadOpen(false)}>
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsUploadOpen(false)}
+                  disabled={isUploading}
+                >
                   Cancelar
                 </Button>
-                <Button type="submit">
-                  <Upload className="mr-2 h-4 w-4" />
-                  Fazer Upload
+                <Button type="submit" disabled={isUploading}>
+                  {isUploading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Enviando...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Adicionar
+                    </>
+                  )}
                 </Button>
               </div>
             </form>
@@ -336,20 +488,21 @@ export default function MaterialsPage() {
 
       {/* Filtros */}
       <Card>
-        <CardContent className="pt-6">
+        <CardHeader>
+          <CardTitle>Filtros</CardTitle>
+        </CardHeader>
+        <CardContent>
           <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar materiais..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Buscar materiais..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
-            
+
             <Select value={selectedTurma} onValueChange={setSelectedTurma}>
               <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Todas as turmas" />
@@ -364,17 +517,16 @@ export default function MaterialsPage() {
               </SelectContent>
             </Select>
 
-            <Select value={selectedCategoria} onValueChange={setSelectedCategoria}>
+            <Select value={selectedTipo} onValueChange={setSelectedTipo}>
               <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="Todas categorias" />
+                <SelectValue placeholder="Todos os tipos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas categorias</SelectItem>
-                {categorias.map((categoria) => (
-                  <SelectItem key={categoria} value={categoria}>
-                    {categoria}
-                  </SelectItem>
-                ))}
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                <SelectItem value="PDF">PDF</SelectItem>
+                <SelectItem value="VIDEO">Vídeo</SelectItem>
+                <SelectItem value="DOCUMENTO">Documento</SelectItem>
+                <SelectItem value="LINK">Link</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -382,83 +534,116 @@ export default function MaterialsPage() {
       </Card>
 
       {/* Lista de Materiais */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredMaterials.map((material) => (
-          <Card key={material.id} className="hover:shadow-md transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div className={`${getFileColor(material.tipo)}`}>
-                  {getFileIcon(material.tipo)}
+      {filteredMaterials.length > 0 ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {filteredMaterials.map((material) => (
+            <Card key={material.id} className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className={`${getFileColor(material.tipo)}`}>
+                    {getFileIcon(material.tipo)}
+                  </div>
+                  <Badge variant="secondary">{material.tipo}</Badge>
                 </div>
-                <Badge variant="secondary">{material.categoria}</Badge>
-              </div>
-              <CardTitle className="text-lg">{material.nome}</CardTitle>
-              <CardDescription className="line-clamp-2">
-                {material.descricao}
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <BookOpen className="h-4 w-4" />
-                <span>{material.turma.codigo}</span>
-              </div>
-              
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <User className="h-4 w-4" />
-                <span>{material.professor.nome}</span>
-              </div>
-              
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Calendar className="h-4 w-4" />
-                <span>{new Date(material.dataUpload).toLocaleDateString('pt-BR')}</span>
-                <span className="ml-auto">{material.tamanho}</span>
-              </div>
+                <CardTitle className="text-lg">{material.titulo}</CardTitle>
+                {material.descricao && (
+                  <CardDescription className="line-clamp-2">
+                    {material.descricao}
+                  </CardDescription>
+                )}
+              </CardHeader>
 
-              {material.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {material.tags.slice(0, 3).map((tag) => (
-                    <Badge key={tag} variant="outline" className="text-xs">
-                      {tag}
-                    </Badge>
-                  ))}
-                  {material.tags.length > 3 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{material.tags.length - 3}
-                    </Badge>
+              <CardContent className="space-y-4">
+                {material.turma && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <BookOpen className="h-4 w-4" />
+                    <span>{material.turma.codigo} - {material.turma.nome}</span>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Calendar className="h-4 w-4" />
+                  <span>{new Date(material.dataCriacao).toLocaleDateString('pt-BR')}</span>
+                  {material.tamanho && (
+                    <span className="ml-auto">{material.tamanho}</span>
                   )}
                 </div>
-              )}
 
-              <div className="flex gap-2 pt-2">
-                <Button variant="outline" size="sm" className="flex-1">
-                  <Eye className="mr-2 h-4 w-4" />
-                  Visualizar
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1">
-                  <Download className="mr-2 h-4 w-4" />
-                  Download
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredMaterials.length === 0 && (
+                <div className="flex gap-2 pt-2">
+                  {material.tipo === 'LINK' ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => material.url && window.open(material.url, '_blank')}
+                    >
+                      <Link2 className="mr-2 h-4 w-4" />
+                      Abrir Link
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => handleView(material)}
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        Visualizar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => handleDownload(material)}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Download
+                      </Button>
+                    </>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDelete(material.id, material.turmaId)}
+                    disabled={deletingId === material.id}
+                  >
+                    {deletingId === material.id ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Nenhum material encontrado</h3>
-            <p className="text-muted-foreground text-center">
-              {searchTerm || selectedTurma !== 'all' || selectedCategoria !== 'all'
-                ? 'Tente ajustar os filtros de busca'
-                : 'Comece adicionando materiais para suas turmas'
-              }
-            </p>
+            {isLoading ? (
+              <>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+                <p className="text-muted-foreground">Carregando materiais...</p>
+              </>
+            ) : materials.length === 0 ? (
+              <>
+                <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Nenhum material cadastrado</h3>
+                <p className="text-muted-foreground text-center">
+                  Comece adicionando materiais para suas turmas clicando no botão acima.
+                </p>
+              </>
+            ) : (
+              <>
+                <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Nenhum material encontrado</h3>
+                <p className="text-muted-foreground text-center">
+                  Tente ajustar os filtros de busca ou adicione novos materiais.
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
       )}
