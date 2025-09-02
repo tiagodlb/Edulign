@@ -14,20 +14,44 @@ const router = express.Router();
  *   description: Funcionalidades específicas para administradores
  */
 
-// CRUD DE USUÁRIOS 
+// ==================== ROTAS DE USUÁRIOS ====================
+
 /**
  * @swagger
  * /admin/users:
  *   get:
- *     summary: Lista todos os usuários
+ *     summary: Lista todos os usuários com filtros e paginação
  *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *           enum: [student, professor, admin]
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [active, inactive, all]
  *     responses:
  *       200:
  *         description: Lista de usuários retornada com sucesso
- *       401:
- *         description: Token inválido ou usuário não autorizado
  */
 router.get('/users',
   authMiddleware,
@@ -39,7 +63,7 @@ router.get('/users',
  * @swagger
  * /admin/users:
  *   post:
- *     summary: Cadastra um novo administrador ou aluno
+ *     summary: Cadastra um novo administrador
  *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
@@ -59,21 +83,59 @@ router.get('/users',
  *               name:
  *                 type: string
  *                 example: Admin
- *               role:
- *                 type: string
- *                 enum: [student, admin]
- *                 example: admin
  *     responses:
  *       201:
- *         description: Usuário cadastrado com sucesso
- *       400:
- *         description: Dados inválidos
+ *         description: Administrador cadastrado com sucesso
  */
 router.post('/users',
   authMiddleware,
   adminMiddleware,
   validateRequest(adminSchema),
-  adminController.createAdmin  // Changed from createUser to createAdmin to match controller
+  adminController.createAdmin
+);
+
+/**
+ * @swagger
+ * /admin/users/{id}:
+ *   put:
+ *     summary: Atualiza dados de um usuário
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [student, professor, admin]
+ *               status:
+ *                 type: string
+ *                 enum: [active, inactive]
+ *     responses:
+ *       200:
+ *         description: Usuário atualizado com sucesso
+ */
+router.put('/users/:id',
+  authMiddleware,
+  adminMiddleware,
+  adminController.updateUser
 );
 
 /**
@@ -94,8 +156,6 @@ router.post('/users',
  *     responses:
  *       200:
  *         description: Usuário excluído com sucesso
- *       404:
- *         description: Usuário não encontrado
  */
 router.delete('/users/:id',
   authMiddleware,
@@ -103,7 +163,81 @@ router.delete('/users/:id',
   adminController.deleteUser
 );
 
-// CRUD DE QUESTION
+// ==================== ROTAS DE QUESTÕES ====================
+
+/**
+ * @swagger
+ * /admin/questions:
+ *   get:
+ *     summary: Lista todas as questões com filtros e paginação
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *       - in: query
+ *         name: area
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: ano
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [enade, custom, all]
+ *     responses:
+ *       200:
+ *         description: Lista de questões retornada com sucesso
+ */
+router.get('/questions',
+  authMiddleware,
+  adminMiddleware,
+  adminController.listQuestion
+);
+
+/**
+ * @swagger
+ * /admin/questions/{id}:
+ *   get:
+ *     summary: Obtém uma questão específica por ID
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Questão retornada com sucesso
+ *       404:
+ *         description: Questão não encontrada
+ */
+router.get('/questions/:id',
+  authMiddleware,
+  adminMiddleware,
+  adminController.getQuestion
+);
+
 /**
  * @swagger
  * /admin/questions:
@@ -130,44 +264,21 @@ router.delete('/users/:id',
  *               respostaCorreta:
  *                 type: integer
  *                 example: 0
+ *               area:
+ *                 type: string
+ *                 example: Geografia
+ *               ano:
+ *                 type: integer
+ *                 example: 2024
  *     responses:
  *       201:
  *         description: Questão criada com sucesso
- *       400:
- *         description: Dados inválidos
  */
 router.post('/questions',
   authMiddleware,
   adminMiddleware,
   validateRequest(questionSchema),
   adminController.createQuestion
-);
-
-/**
- * @swagger
- * /admin/questions/{id}:
- *   delete:
- *     summary: Exclui uma questão
- *     tags: [Admin]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *     responses:
- *       200:
- *         description: Questão excluída com sucesso
- *       404:
- *         description: Questão não encontrada
- */
-router.delete('/questions/:id',
-  authMiddleware,
-  adminMiddleware,
-  adminController.deleteQuestion
 );
 
 /**
@@ -194,28 +305,19 @@ router.delete('/questions/:id',
  *             properties:
  *               enunciado:
  *                 type: string
- *                 example: Qual é a capital do Brasil?
  *               alternativas:
  *                 type: array
  *                 items:
  *                   type: string
- *                 example: [Brasília, São Paulo, Rio de Janeiro]
  *               respostaCorreta:
  *                 type: integer
- *                 example: 0
  *               area:
  *                 type: string
- *                 example: Geografia
  *               ano:
  *                 type: integer
- *                 example: 2024
  *     responses:
  *       200:
  *         description: Questão atualizada com sucesso
- *       400:
- *         description: Dados inválidos
- *       404:
- *         description: Questão não encontrada
  */
 router.put('/questions/:id',
   authMiddleware,
@@ -224,7 +326,72 @@ router.put('/questions/:id',
   adminController.updateQuestion
 );
 
-// CRUD DE IA RESPONSE
+/**
+ * @swagger
+ * /admin/questions/{id}:
+ *   delete:
+ *     summary: Exclui uma questão
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Questão excluída com sucesso
+ */
+router.delete('/questions/:id',
+  authMiddleware,
+  adminMiddleware,
+  adminController.deleteQuestion
+);
+
+// ==================== ROTAS DE RESPOSTAS DA IA ====================
+
+/**
+ * @swagger
+ * /admin/responses/pending:
+ *   get:
+ *     summary: Lista respostas da IA pendentes de revisão
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [question, explanation, hint, all]
+ *       - in: query
+ *         name: priority
+ *         schema:
+ *           type: string
+ *           enum: [high, medium, low, all]
+ *     responses:
+ *       200:
+ *         description: Lista de respostas pendentes retornada com sucesso
+ */
+router.get('/responses/pending',
+  authMiddleware,
+  adminMiddleware,
+  adminController.listPendingResponses
+);
+
 /**
  * @swagger
  * /admin/review-response:
@@ -245,11 +412,13 @@ router.put('/questions/:id',
  *                 format: uuid
  *               revisedResponse:
  *                 type: string
+ *               feedback:
+ *                 type: string
+ *               approved:
+ *                 type: boolean
  *     responses:
  *       200:
  *         description: Resposta revisada com sucesso
- *       404:
- *         description: Resposta não encontrada
  */
 router.put('/review-response',
   authMiddleware,
@@ -257,6 +426,39 @@ router.put('/review-response',
   adminController.reviewResponse
 );
 
+/**
+ * @swagger
+ * /admin/responses/bulk-approve:
+ *   put:
+ *     summary: Aprova ou rejeita respostas em lote
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               responseIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: uuid
+ *               approved:
+ *                 type: boolean
+ *               feedback:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Respostas processadas com sucesso
+ */
+router.put('/responses/bulk-approve',
+  authMiddleware,
+  adminMiddleware,
+  adminController.bulkApproveResponses
+);
 
 /**
  * @swagger
@@ -276,13 +478,75 @@ router.put('/review-response',
  *     responses:
  *       200:
  *         description: Resposta excluída com sucesso
- *       404:
- *         description: Resposta não encontrada
  */
 router.delete('/delete-response/:id', 
   authMiddleware,
   adminMiddleware,
   adminController.deleteResponse
+);
+
+// ==================== ROTAS DE ESTATÍSTICAS ====================
+
+/**
+ * @swagger
+ * /admin/statistics/system:
+ *   get:
+ *     summary: Obtém estatísticas gerais do sistema
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           enum: [day, week, month, year]
+ *           default: month
+ *     responses:
+ *       200:
+ *         description: Estatísticas do sistema retornadas com sucesso
+ */
+router.get('/statistics/system',
+  authMiddleware,
+  adminMiddleware,
+  adminController.getSystemStatistics
+);
+
+/**
+ * @swagger
+ * /admin/reports/activity:
+ *   get:
+ *     summary: Gera relatório de atividades
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: endDate
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [users, questions, responses, all]
+ *           default: all
+ *     responses:
+ *       200:
+ *         description: Relatório de atividades gerado com sucesso
+ */
+router.get('/reports/activity',
+  authMiddleware,
+  adminMiddleware,
+  adminController.getActivityReport
 );
 
 export default router;
