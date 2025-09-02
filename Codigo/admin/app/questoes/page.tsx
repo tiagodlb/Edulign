@@ -497,7 +497,7 @@ export default function QuestoesPage() {
                   <SelectValue placeholder="Todas as áreas" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas as áreas</SelectItem>
+                  <SelectItem value="Todos">Todas as áreas</SelectItem>
                   {areas.map(area => (
                     <SelectItem key={area} value={area}>{area}</SelectItem>
                   ))}
@@ -515,7 +515,7 @@ export default function QuestoesPage() {
                   <SelectValue placeholder="Todos os anos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os anos</SelectItem>
+                  <SelectItem value="Todos">Todos os anos</SelectItem>
                   {anos.map(ano => (
                     <SelectItem key={ano} value={ano.toString()}>{ano}</SelectItem>
                   ))}

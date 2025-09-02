@@ -4,8 +4,10 @@ import { Inter } from 'next/font/google'
 import type React from 'react'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Metadata, Viewport } from 'next'
+import { Suspense } from 'react'
+import { AdminProvider } from '@/lib/contexts/AdminContext'
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-inter'
@@ -63,7 +65,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
       </head>
-      <body 
+      <body
         className={`${inter.className} antialiased`}
         suppressHydrationWarning
       >
@@ -74,7 +76,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
           disableTransitionOnChange
         >
           <AuthProvider>
-            {children}
+            <AdminProvider>
+              <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+            </AdminProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

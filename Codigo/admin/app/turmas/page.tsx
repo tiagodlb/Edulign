@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
-import { 
+import {
   Search,
   Plus,
   Users,
@@ -35,8 +35,9 @@ import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import { turmaService, type Turma } from '@/lib/api/turmas'
 import { useRouter } from 'next/navigation'
+import { mockTurmas } from './mockdata'
 
-interface TurmaDisplay extends Turma {
+export interface TurmaDisplay extends Turma {
   status?: 'ativa' | 'arquivada'
   totalAlunos?: number
   simuladosAtivos?: number
@@ -50,7 +51,7 @@ export default function TurmasPage() {
   const { user } = useAuth()
   const { toast } = useToast()
   const router = useRouter()
-  
+
   const [turmas, setTurmas] = useState<TurmaDisplay[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -82,7 +83,7 @@ export default function TurmasPage() {
     try {
       setIsLoading(true)
       const data = await turmaService.getTurmas()
-      
+
       // Enriquecer dados para display
       const turmasEnriquecidas: TurmaDisplay[] = data.map(turma => ({
         ...turma,
@@ -94,8 +95,9 @@ export default function TurmasPage() {
         semestre: extractSemestre(turma.dataCriacao),
         ano: new Date(turma.dataCriacao).getFullYear()
       }))
-      
-      setTurmas(turmasEnriquecidas)
+
+      const data2 = mockTurmas
+      setTurmas(data2)
     } catch (error) {
       console.error('Erro ao carregar turmas:', error)
       toast({
@@ -110,7 +112,7 @@ export default function TurmasPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!createForm.nome) {
       toast({
         title: 'Campo obrigatório',
@@ -122,31 +124,31 @@ export default function TurmasPage() {
 
     try {
       setIsCreating(true)
-      
+
       const novaTurma = await turmaService.createTurma({
         nome: createForm.nome,
         descricao: createForm.descricao || undefined
       })
-      
+
       toast({
         title: 'Turma criada',
         description: `A turma ${novaTurma.nome} foi criada com sucesso. Código: ${novaTurma.codigo}`
       })
-      
+
       // Copiar código para clipboard
       await navigator.clipboard.writeText(novaTurma.codigo)
       toast({
         title: 'Código copiado!',
         description: `O código ${novaTurma.codigo} foi copiado para a área de transferência`
       })
-      
+
       setIsCreateOpen(false)
       setCreateForm({
         nome: '',
         descricao: '',
         cor: '#3b82f6'
       })
-      
+
       await loadTurmas()
     } catch (error) {
       console.error('Erro ao criar turma:', error)
@@ -178,12 +180,12 @@ export default function TurmasPage() {
         descricao: editForm.descricao || undefined,
         ativa: editForm.ativa
       })
-      
+
       toast({
         title: 'Turma atualizada',
         description: 'As informações da turma foram atualizadas com sucesso'
       })
-      
+
       setEditingTurma(null)
       await loadTurmas()
     } catch (error) {
@@ -204,12 +206,12 @@ export default function TurmasPage() {
     try {
       setDeletingId(turmaId)
       await turmaService.deleteTurma(turmaId)
-      
+
       toast({
         title: 'Turma excluída',
         description: 'A turma foi excluída com sucesso'
       })
-      
+
       await loadTurmas()
     } catch (error) {
       console.error('Erro ao excluir turma:', error)
@@ -226,15 +228,15 @@ export default function TurmasPage() {
   const handleToggleStatus = async (turma: TurmaDisplay) => {
     const novoStatus = !turma.ativa
     const acao = novoStatus ? 'reativar' : 'arquivar'
-    
+
     try {
       await turmaService.toggleTurmaStatus(turma.id, novoStatus)
-      
+
       toast({
         title: `Turma ${novoStatus ? 'reativada' : 'arquivada'}`,
         description: `A turma ${turma.nome} foi ${novoStatus ? 'reativada' : 'arquivada'} com sucesso`
       })
-      
+
       await loadTurmas()
     } catch (error) {
       console.error(`Erro ao ${acao} turma:`, error)
@@ -283,7 +285,7 @@ export default function TurmasPage() {
   }
 
   const getStatusColor = (status: 'ativa' | 'arquivada') => {
-    return status === 'ativa' 
+    return status === 'ativa'
       ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
       : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
   }
@@ -295,9 +297,9 @@ export default function TurmasPage() {
   // Filtrar turmas
   const filteredTurmas = turmas.filter(turma => {
     const matchesSearch = turma.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         turma.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (turma.descricao?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
-    
+      turma.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (turma.descricao?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
+
     const matchesStatus = selectedStatus === 'all' || turma.status === selectedStatus
     const matchesSemestre = selectedSemestre === 'all' || turma.semestre === selectedSemestre
 
@@ -305,7 +307,7 @@ export default function TurmasPage() {
   })
 
   const semestres = [...new Set(turmas.map(t => t.semestre).filter(Boolean))]
-  
+
   // Estatísticas
   const stats = {
     total: turmas.length,
@@ -333,7 +335,7 @@ export default function TurmasPage() {
             Gerencie suas turmas e acompanhe o progresso dos alunos
           </p>
         </div>
-        
+
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -389,9 +391,9 @@ export default function TurmasPage() {
               </div>
 
               <div className="flex justify-end gap-3">
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={() => setIsCreateOpen(false)}
                   disabled={isCreating}
                 >
@@ -501,7 +503,7 @@ export default function TurmasPage() {
                 />
               </div>
             </div>
-            
+
             <Select value={selectedStatus} onValueChange={setSelectedStatus}>
               <SelectTrigger className="w-full sm:w-[150px]">
                 <SelectValue placeholder="Status" />
@@ -536,14 +538,14 @@ export default function TurmasPage() {
       {filteredTurmas.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredTurmas.map((turma) => (
-            <Card 
-              key={turma.id} 
+            <Card
+              key={turma.id}
               className="hover:shadow-md transition-shadow cursor-pointer"
               onClick={() => navigateToTurmaDetails(turma.id)}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
-                  <div 
+                  <div
                     className="w-4 h-4 rounded-full"
                     style={{ backgroundColor: turma.cor }}
                   />
@@ -558,7 +560,7 @@ export default function TurmasPage() {
                   </CardDescription>
                 )}
               </CardHeader>
-              
+
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium bg-muted px-2 py-1 rounded">
@@ -613,7 +615,7 @@ export default function TurmasPage() {
                     <Eye className="mr-2 h-4 w-4" />
                     Ver Detalhes
                   </Button>
-                  
+
                   <Button
                     variant="outline"
                     size="sm"
@@ -621,7 +623,7 @@ export default function TurmasPage() {
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
-                  
+
                   <Button
                     variant="outline"
                     size="sm"
@@ -633,7 +635,7 @@ export default function TurmasPage() {
                       <ArchiveRestore className="h-4 w-4" />
                     )}
                   </Button>
-                  
+
                   {turma._count?.alunos === 0 && turma._count?.materiais === 0 && (
                     <Button
                       variant="outline"

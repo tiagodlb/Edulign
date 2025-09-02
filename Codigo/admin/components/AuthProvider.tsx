@@ -15,7 +15,7 @@ type User = {
 
 type AuthContextType = {
   user: User | null
-  login: (email: string, password: string, rememberMe?: boolean) => Promise<boolean>
+  login: (email: string, password: string) => Promise<boolean>
   logout: () => void
   isLoading: boolean
 }
@@ -30,48 +30,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
-    // Verificar se há um token salvo e validá-lo
+    // Carregar usuário salvo no localStorage
+    const storedUser = localStorage.getItem('user')
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser)
+      setUser(parsedUser)
+    }
+
+    // Validar token
     const initAuth = async () => {
       const token = getAuthToken()
-      
       if (token) {
         try {
-          // Validar token com o backend
           const response = await fetch(`${API_BASE_URL}/auth/me`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
           })
-          
+
           if (response.ok) {
             const data = await response.json()
-            setUser({
-              ...data.data,
-              token
-            })
+            const validatedUser = { ...data.data, token }
+            setUser(validatedUser)
+            localStorage.setItem('user', JSON.stringify(validatedUser))
           } else {
-            // Token inválido, limpar
             clearAuthToken()
+            localStorage.removeItem('user')
           }
         } catch (error) {
           console.error('Erro ao validar token:', error)
           clearAuthToken()
+          localStorage.removeItem('user')
         }
       }
-      
       setIsLoading(false)
     }
-    
+
     initAuth()
   }, [])
 
-  const login = async (email: string, password: string, rememberMe: boolean = false): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       })
 
@@ -81,25 +83,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const data = await response.json()
-      
-      // Salvar token
-      setAuthToken(data.token, rememberMe)
-      
-      // Salvar dados do usuário
-      const userData = {
-        ...data.data,
-        token: data.token
-      }
-      
+
+      // Salvar token e usuário no localStorage
+      setAuthToken(data.token, true)
+      const userData = { ...data.data, token: data.token }
       setUser(userData)
-      
-      // Salvar no localStorage para persistência
-      if (rememberMe) {
-        localStorage.setItem('user', JSON.stringify(userData))
-      } else {
-        sessionStorage.setItem('user', JSON.stringify(userData))
-      }
-      
+      localStorage.setItem('user', JSON.stringify(userData))
+
       return true
     } catch (error) {
       console.error('Erro no login:', error)
@@ -111,7 +101,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearAuthToken()
     setUser(null)
     localStorage.removeItem('user')
-    sessionStorage.removeItem('user')
     router.push('/login')
   }
 

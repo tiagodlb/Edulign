@@ -1,373 +1,596 @@
-'use client'
+"use client"
 
-import { useEffect, useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { 
-  Users, 
-  BookOpen, 
-  FileText, 
-  TrendingUp, 
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Users,
+  FileQuestion,
+  Brain,
   Clock,
+  CheckCircle,
+  AlertCircle,
+  ArrowUpRight,
+  ArrowDownRight,
   Plus,
-  ArrowRight,
-  School,
-  GraduationCap,
-  BarChart
-} from 'lucide-react'
-import Link from 'next/link'
-import { useAuth } from '@/components/AuthProvider'
-import { SiteHeader } from '@/components/layout/site-header'
-import QuestionManager from '@/components/QuestionManager'
+  RefreshCw,
+  BarChart3,
+} from "lucide-react"
+import Link from "next/link"
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts"
 
-interface DashboardData {
-  totalTurmas: number
-  totalAlunos: number
-  simuladosAtivos: number
-  taxaConclusaoMedia: number
-  turmasRecentes: Array<{
-    id: string
-    nome: string
-    codigo: string
-    totalAlunos: number
-    simuladosAtivos: number
-  }>
-  atividadesRecentes: Array<{
-    id: string
-    tipo: 'simulado' | 'material' | 'aluno'
-    descricao: string
-    data: string
-    turma: string
-  }>
+import { useAuth } from "@/components/AuthProvider"
+import { useAdmin } from "@/lib/contexts/AdminContext"
+import { PageHeader } from "@/components/layout/main-nav"
+import { dateUtils, numberUtils } from "@/lib/admin-utils"
+import React from "react"
+
+// ==================== MOCK DATA ====================
+
+const activityData = [
+  { name: "Seg", usuarios: 120, questoes: 8, revisoes: 15 },
+  { name: "Ter", usuarios: 98, questoes: 12, revisoes: 23 },
+  { name: "Qua", usuarios: 156, questoes: 5, revisoes: 18 },
+  { name: "Qui", usuarios: 134, questoes: 9, revisoes: 12 },
+  { name: "Sex", usuarios: 189, questoes: 15, revisoes: 28 },
+  { name: "Sab", usuarios: 78, questoes: 3, revisoes: 5 },
+  { name: "Dom", usuarios: 45, questoes: 1, revisoes: 2 },
+]
+
+const responseTypeData = [
+  { name: "Questões", value: 45, color: "#8884d8" },
+  { name: "Explicações", value: 30, color: "#82ca9d" },
+  { name: "Dicas", value: 25, color: "#ffc658" },
+]
+
+const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7c7c", "#8dd1e1"]
+
+// ==================== COMPONENTS ====================
+
+interface MetricCardProps {
+  title: string
+  value: string | number
+  change?: number
+  description: string
+  icon: React.ComponentType<{ className?: string }>
+  href?: string
+  trend?: "up" | "down" | "stable"
+  color?: "default" | "success" | "warning" | "danger"
 }
 
-export default function DashboardPage() {
-  const { user } = useAuth()
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [userRole, setUserRole] = useState<'admin' | 'professor' | null>(null)
-
-  useEffect(() => {
-    // Verificar o tipo de usuário
-    const checkUserRole = async () => {
-      // Aqui você faria uma chamada à API para verificar o papel do usuário
-      // Por enquanto, vamos simular
-      const isProfessor = true // Simular que é professor
-      setUserRole(isProfessor ? 'professor' : 'admin')
-    }
-
-    checkUserRole()
-  }, [user])
-
-  useEffect(() => {
-    if (userRole === 'professor') {
-      loadProfessorDashboard()
-    } else if (userRole === 'admin') {
-      loadAdminDashboard()
-    }
-  }, [userRole])
-
-  const loadProfessorDashboard = async () => {
-    try {
-      // Simular dados do dashboard do professor
-      const mockData: DashboardData = {
-        totalTurmas: 4,
-        totalAlunos: 87,
-        simuladosAtivos: 3,
-        taxaConclusaoMedia: 78.5,
-        turmasRecentes: [
-          {
-            id: '1',
-            nome: 'Engenharia de Software - 2024.2',
-            codigo: 'ENG2024',
-            totalAlunos: 32,
-            simuladosAtivos: 2
-          },
-          {
-            id: '2',
-            nome: 'Algoritmos e Estrutura de Dados',
-            codigo: 'AED2024',
-            totalAlunos: 28,
-            simuladosAtivos: 1
-          },
-          {
-            id: '3',
-            nome: 'Banco de Dados Avançado',
-            codigo: 'BDA2024',
-            totalAlunos: 27,
-            simuladosAtivos: 0
-          }
-        ],
-        atividadesRecentes: [
-          {
-            id: '1',
-            tipo: 'simulado',
-            descricao: 'Novo simulado criado: "Prova P1 - Algoritmos"',
-            data: '2024-02-08 14:30',
-            turma: 'AED2024'
-          },
-          {
-            id: '2',
-            tipo: 'material',
-            descricao: 'Material adicionado: "Slides Aula 5"',
-            data: '2024-02-08 10:15',
-            turma: 'ENG2024'
-          },
-          {
-            id: '3',
-            tipo: 'aluno',
-            descricao: '5 novos alunos entraram na turma',
-            data: '2024-02-07 16:45',
-            turma: 'BDA2024'
-          }
-        ]
-      }
-      
-      setDashboardData(mockData)
-    } catch (error) {
-      console.error('Erro ao carregar dashboard:', error)
-    } finally {
-      setIsLoading(false)
-    }
+function MetricCard({
+  title,
+  value,
+  change,
+  description,
+  icon: Icon,
+  href,
+  trend,
+  color = "default",
+}: MetricCardProps) {
+  const colorClasses = {
+    default: "text-muted-foreground",
+    success: "text-green-600",
+    warning: "text-yellow-600",
+    danger: "text-red-600",
   }
 
-  const loadAdminDashboard = async () => {
-    // Manter a lógica existente do admin
-    setIsLoading(false)
-  }
+  const trendIcon = trend === "up" ? ArrowUpRight : trend === "down" ? ArrowDownRight : null
+  const trendColor = trend === "up" ? "text-green-500" : trend === "down" ? "text-red-500" : "text-muted-foreground"
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    )
-  }
-
-  // Dashboard do Professor
-  if (userRole === 'professor' && dashboardData) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">Dashboard do Professor</h2>
-            <p className="text-muted-foreground">
-              Bem-vindo de volta! Aqui está um resumo das suas turmas.
-            </p>
-          </div>
-          <Button asChild>
-            <Link href="/turmas/nova">
-              <Plus className="mr-2 h-4 w-4" />
-              Nova Turma
-            </Link>
-          </Button>
-        </div>
-
-        {/* Cards de Estatísticas */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Turmas</CardTitle>
-              <School className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{dashboardData.totalTurmas}</div>
-              <p className="text-xs text-muted-foreground">
-                {dashboardData.turmasRecentes.filter(t => t.simuladosAtivos > 0).length} com simulados ativos
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Alunos</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{dashboardData.totalAlunos}</div>
-              <p className="text-xs text-muted-foreground">
-                Em todas as suas turmas
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Simulados Ativos</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{dashboardData.simuladosAtivos}</div>
-              <p className="text-xs text-muted-foreground">
-                Em andamento neste momento
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Taxa de Conclusão</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{dashboardData.taxaConclusaoMedia}%</div>
-              <Progress value={dashboardData.taxaConclusaoMedia} className="mt-2" />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Grid de Turmas e Atividades */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          {/* Turmas Recentes */}
-          <Card className="col-span-4">
-            <CardHeader>
-              <CardTitle>Suas Turmas</CardTitle>
-              <CardDescription>
-                Gerencie suas turmas e acompanhe o progresso dos alunos
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {dashboardData.turmasRecentes.map((turma) => (
-                  <div key={turma.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent transition-colors">
-                    <div className="flex-1">
-                      <h4 className="font-semibold">{turma.nome}</h4>
-                      <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <GraduationCap className="h-3 w-3" />
-                          {turma.totalAlunos} alunos
-                        </span>
-                        <span>Código: {turma.codigo}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {turma.simuladosAtivos > 0 && (
-                        <Badge variant="secondary">
-                          {turma.simuladosAtivos} simulado{turma.simuladosAtivos > 1 ? 's' : ''} ativo{turma.simuladosAtivos > 1 ? 's' : ''}
-                        </Badge>
-                      )}
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/turmas/${turma.id}`}>
-                          <ArrowRight className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4">
-                <Button variant="outline" className="w-full" asChild>
-                  <Link href="/turmas">
-                    Ver todas as turmas
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Atividades Recentes */}
-          <Card className="col-span-3">
-            <CardHeader>
-              <CardTitle>Atividades Recentes</CardTitle>
-              <CardDescription>
-                Últimas ações nas suas turmas
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {dashboardData.atividadesRecentes.map((atividade) => (
-                  <div key={atividade.id} className="flex items-start space-x-3">
-                    <div className={`mt-0.5 rounded-full p-2 ${
-                      atividade.tipo === 'simulado' ? 'bg-blue-100 text-blue-600' :
-                      atividade.tipo === 'material' ? 'bg-green-100 text-green-600' :
-                      'bg-purple-100 text-purple-600'
-                    }`}>
-                      {atividade.tipo === 'simulado' ? <FileText className="h-3 w-3" /> :
-                       atividade.tipo === 'material' ? <BookOpen className="h-3 w-3" /> :
-                       <Users className="h-3 w-3" />}
-                    </div>
-                    <div className="flex-1 space-y-1">
-                      <p className="text-sm font-medium leading-none">
-                        {atividade.descricao}
-                      </p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Badge variant="outline" className="text-xs">
-                          {atividade.turma}
-                        </Badge>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {new Date(atividade.data).toLocaleString('pt-BR', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Ações Rápidas */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Ações Rápidas</CardTitle>
-            <CardDescription>
-              Acesse rapidamente as funcionalidades mais usadas
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-4">
-              <Button variant="outline" className="h-auto flex-col gap-2 p-4" asChild>
-                <Link href="/turmas/nova">
-                  <School className="h-6 w-6" />
-                  <span>Criar Turma</span>
-                </Link>
-              </Button>
-              <Button variant="outline" className="h-auto flex-col gap-2 p-4" asChild>
-                <Link href="/simulados/novo">
-                  <FileText className="h-6 w-6" />
-                  <span>Criar Simulado</span>
-                </Link>
-              </Button>
-              <Button variant="outline" className="h-auto flex-col gap-2 p-4" asChild>
-                <Link href="/materiais/upload">
-                  <BookOpen className="h-6 w-6" />
-                  <span>Adicionar Material</span>
-                </Link>
-              </Button>
-              <Button variant="outline" className="h-auto flex-col gap-2 p-4" asChild>
-                <Link href="/relatorios">
-                  <BarChart className="h-6 w-6" />
-                  <span>Ver Relatórios</span>
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+  const CardComponent = href ? Link : "div"
+  const cardProps = href ? { href } : {}
 
   return (
-    <div className="min-h-screen bg-background">
-      <SiteHeader />
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Gerenciamento de Questões</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <QuestionManager />
-          </CardContent>
-        </Card>
-      </main>
+    <CardComponent {...cardProps} className={href ? "block hover:shadow-md transition-shadow" : ""}>
+      <Card className="h-full">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">{title}</CardTitle>
+          <Icon className={`h-4 w-4 ${colorClasses[color]}`} />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            {typeof value === "number" ? numberUtils.formatNumber(value) : value}
+          </div>
+          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+            <span>{description}</span>
+            {change !== undefined && trendIcon && (
+              <div className={`flex items-center ${trendColor}`}>
+                {React.createElement(trendIcon, { className: "h-3 w-3" })}
+                <span>{numberUtils.formatGrowth(change, 0)}</span>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </CardComponent>
+  )
+}
+
+interface QuickActionProps {
+  title: string
+  description: string
+  href: string
+  icon: React.ComponentType<{ className?: string }>
+  badge?: string
+  color?: string
+}
+
+function QuickAction({ title, description, href, icon: Icon, badge, color }: QuickActionProps) {
+  return (
+    <Link href={href}>
+      <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
+        <CardContent className="p-4">
+          <div className="flex items-start space-x-3">
+            <div className={`p-2 rounded-lg ${color || "bg-primary/10"}`}>
+              <Icon className="h-5 w-5" />
+            </div>
+            <div className="flex-1 space-y-1">
+              <div className="flex items-center gap-2">
+                <h3 className="font-medium">{title}</h3>
+                {badge && (
+                  <Badge variant="secondary" className="text-xs">
+                    {badge}
+                  </Badge>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">{description}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  )
+}
+
+// ==================== MAIN COMPONENT ====================
+
+export default function DashboardPage() {
+  const { user, isLoading } = useAuth()
+  const { state: adminState, loadStatistics } = useAdmin()
+  const [loading, setLoading] = useState(true)
+  const [period, setPeriod] = useState<"day" | "week" | "month" | "year">("month")
+
+  // Carregar estatísticas
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true)
+      try {
+        await loadStatistics(period)
+      } catch (error) {
+        console.error("Erro ao carregar estatísticas:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [period, loadStatistics])
+
+  const stats = adminState.statistics.data
+
+  // Dados derivados
+  const userGrowth = stats
+    ? numberUtils.calculateGrowth(stats.users.active, stats.users.total - stats.users.newThisPeriod)
+    : 0
+  const questionGrowth = stats
+    ? numberUtils.calculateGrowth(stats.questions.newThisPeriod, stats.questions.total - stats.questions.newThisPeriod)
+    : 0
+
+  // Quick actions baseadas no que precisa de atenção
+  const quickActions = [
+    {
+      title: "Revisar Respostas IA",
+      description: `${stats?.responses.totalPending || 0} respostas aguardando revisão`,
+      href: "/revisao-ia",
+      icon: Brain,
+      badge: stats?.responses.totalPending ? stats.responses.totalPending.toString() : undefined,
+      color: "bg-orange-100 text-orange-600",
+    },
+    {
+      title: "Adicionar Questões",
+      description: "Expandir banco de questões",
+      href: "/questoes",
+      icon: Plus,
+      color: "bg-blue-100 text-blue-600",
+    },
+    {
+      title: "Gerenciar Usuários",
+      description: `${stats?.users.total || 0} usuários no sistema`,
+      href: "/usuarios",
+      icon: Users,
+      color: "bg-green-100 text-green-600",
+    },
+    {
+      title: "Ver Relatórios",
+      description: "Análises detalhadas",
+      href: "/estatisticas",
+      icon: BarChart3,
+      color: "bg-purple-100 text-purple-600",
+    },
+  ]
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title={`Olá, ${user?.nome?.split(" ")[0] || "Admin"}! 👋`}
+        description="Aqui está o resumo do que está acontecendo no sistema"
+        action={
+          <Button onClick={() => loadStatistics(period)} variant="outline" size="sm">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Atualizar
+          </Button>
+        }
+      />
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      ) : (
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+            <TabsTrigger value="activity">Atividades</TabsTrigger>
+            <TabsTrigger value="system">Sistema</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            {/* Métricas principais */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <MetricCard
+                title="Total de Usuários"
+                value={stats?.users.total || 0}
+                change={userGrowth}
+                description={`${stats?.users.active || 0} ativos`}
+                icon={Users}
+                href="/usuarios"
+                trend={userGrowth > 0 ? "up" : userGrowth < 0 ? "down" : "stable"}
+                color="default"
+              />
+
+              <MetricCard
+                title="Questões"
+                value={stats?.questions.total || 0}
+                change={questionGrowth}
+                description={`+${stats?.questions.newThisPeriod || 0} este período`}
+                icon={FileQuestion}
+                href="/questoes"
+                trend={questionGrowth > 0 ? "up" : "stable"}
+                color="success"
+              />
+
+              <MetricCard
+                title="Respostas Pendentes"
+                value={stats?.responses.totalPending || 0}
+                description="Aguardando revisão"
+                icon={Clock}
+                href="/revisao-ia"
+                color={stats && stats.responses.totalPending > 10 ? "warning" : "default"}
+              />
+
+              <MetricCard
+                title="Taxa de Aprovação"
+                value={stats ? `${stats.responses.approvalRate.toFixed(1)}%` : "0%"}
+                description="Respostas IA aprovadas"
+                icon={CheckCircle}
+                color="success"
+              />
+            </div>
+
+            {/* Ações rápidas */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Ações Rápidas</h3>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {quickActions.map((action, index) => (
+                  <QuickAction key={index} {...action} />
+                ))}
+              </div>
+            </div>
+
+            {/* Gráficos principais */}
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Atividade dos Últimos 7 Dias</CardTitle>
+                  <CardDescription>Usuários ativos, questões criadas e revisões feitas</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={activityData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line type="monotone" dataKey="usuarios" stroke="#8884d8" strokeWidth={2} name="Usuários" />
+                      <Line type="monotone" dataKey="questoes" stroke="#82ca9d" strokeWidth={2} name="Questões" />
+                      <Line type="monotone" dataKey="revisoes" stroke="#ffc658" strokeWidth={2} name="Revisões" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Distribuição de Respostas IA</CardTitle>
+                  <CardDescription>Tipos de respostas geradas pela IA</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={responseTypeData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={120}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {responseTypeData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Questões por área */}
+            {stats?.questions.byArea && stats.questions.byArea.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Questões por Área de Conhecimento</CardTitle>
+                  <CardDescription>Distribuição do banco de questões</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={stats.questions.byArea}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="area" angle={-45} textAnchor="end" height={80} fontSize={12} />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="count" fill="#8884d8" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="activity" className="space-y-6">
+            <div className="grid gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Atividade Detalhada</CardTitle>
+                  <CardDescription>Métricas de atividade por categoria</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={400}>
+                    <AreaChart data={activityData}>
+                      <defs>
+                        <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
+                          <stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="colorQuestions" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#82ca9d" stopOpacity={0.8} />
+                          <stop offset="95%" stopColor="#82ca9d" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <Tooltip />
+                      <Legend />
+                      <Area
+                        type="monotone"
+                        dataKey="usuarios"
+                        stackId="1"
+                        stroke="#8884d8"
+                        fillOpacity={1}
+                        fill="url(#colorUsers)"
+                        name="Usuários Ativos"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="questoes"
+                        stackId="2"
+                        stroke="#82ca9d"
+                        fillOpacity={1}
+                        fill="url(#colorQuestions)"
+                        name="Novas Questões"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Atividades recentes */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Atividades Recentes</CardTitle>
+                  <CardDescription>Últimas ações no sistema</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[
+                      {
+                        icon: Users,
+                        title: "Novo usuário cadastrado",
+                        description: "João Silva se registrou como professor",
+                        time: "2 horas atrás",
+                        color: "bg-green-100 text-green-600",
+                      },
+                      {
+                        icon: FileQuestion,
+                        title: "5 questões adicionadas",
+                        description: "Questões de Matemática do ENADE 2024",
+                        time: "4 horas atrás",
+                        color: "bg-blue-100 text-blue-600",
+                      },
+                      {
+                        icon: Brain,
+                        title: "Respostas IA revisadas",
+                        description: "12 respostas aprovadas por Maria Admin",
+                        time: "6 horas atrás",
+                        color: "bg-purple-100 text-purple-600",
+                      },
+                      {
+                        icon: AlertCircle,
+                        title: "Sistema atualizado",
+                        description: "Nova versão com melhorias de performance",
+                        time: "1 dia atrás",
+                        color: "bg-orange-100 text-orange-600",
+                      },
+                    ].map((activity, index) => {
+                      const Icon = activity.icon
+                      return (
+                        <div key={index} className="flex items-start space-x-3">
+                          <div className={`p-2 rounded-lg ${activity.color}`}>
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            <p className="text-sm font-medium">{activity.title}</p>
+                            <p className="text-xs text-muted-foreground">{activity.description}</p>
+                            <p className="text-xs text-muted-foreground">{activity.time}</p>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="system" className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Status do Sistema</CardTitle>
+                  <CardDescription>Saúde geral da plataforma</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">API</span>
+                    <div className="flex items-center space-x-2">
+                      <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                      <span className="text-sm text-muted-foreground">Online</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Banco de Dados</span>
+                    <div className="flex items-center space-x-2">
+                      <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                      <span className="text-sm text-muted-foreground">Conectado</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">IA Service</span>
+                    <div className="flex items-center space-x-2">
+                      <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                      <span className="text-sm text-muted-foreground">Ativo</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Storage</span>
+                    <div className="flex items-center space-x-2">
+                      <div className="h-2 w-2 bg-yellow-500 rounded-full"></div>
+                      <span className="text-sm text-muted-foreground">75% usado</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recursos do Sistema</CardTitle>
+                  <CardDescription>Uso atual dos recursos</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span>CPU</span>
+                      <span>45%</span>
+                    </div>
+                    <Progress value={45} className="h-2" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span>Memória</span>
+                      <span>62%</span>
+                    </div>
+                    <Progress value={62} className="h-2" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span>Disco</span>
+                      <span>28%</span>
+                    </div>
+                    <Progress value={28} className="h-2" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span>Rede</span>
+                      <span>15%</span>
+                    </div>
+                    <Progress value={15} className="h-2" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="md:col-span-2">
+                <CardHeader>
+                  <CardTitle>Informações do Sistema</CardTitle>
+                  <CardDescription>Detalhes técnicos e versões</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Versão</h4>
+                      <p className="text-sm text-muted-foreground">v2.1.0</p>
+                    </div>
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Última Atualização</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {dateUtils.formatDate(new Date(), "dd/MM/yyyy HH:mm")}
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Uptime</h4>
+                      <p className="text-sm text-muted-foreground">7 dias, 14h 32m</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   )
 }

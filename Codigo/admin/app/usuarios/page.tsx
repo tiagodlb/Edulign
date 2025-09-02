@@ -518,7 +518,7 @@ export default function UsuariosPage() {
                   <SelectValue placeholder="Todos os papéis" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os papéis</SelectItem>
+                  <SelectItem value="Todos">Todos os papéis</SelectItem>
                   <SelectItem value="student">Alunos</SelectItem>
                   <SelectItem value="professor">Professores</SelectItem>
                   <SelectItem value="admin">Administradores</SelectItem>

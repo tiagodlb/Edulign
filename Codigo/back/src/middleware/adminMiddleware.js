@@ -1,4 +1,5 @@
 const adminMiddleware = async (req, res, next) => {
+    console.log(req)
     try {
         if (!req.user) {
             return res.status(401).json({
